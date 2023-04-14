@@ -3,34 +3,36 @@
 #  PAT access in the future.
 # Author: Alex Paynter
 
-# The Synapse folder containing the clinical data files.
-synid_clin_data <- "syn50612196"
+# Before running this file you will need to login to synapse with
+#   genieBPC::set_synapse_credentials()
+# This login will expire every 24h, and should be replaced with a PAT
+#   access ASAP.
 
 library(synapser)
-library(purrr)
-library(dplyr)
 library(here)
-library(stringr)
-library(magrittr)
+library(genieBPC)
+library(fs)
 
-synLogin()
-
-# create directories for data and data-raw
-dir.create(here("data"), showWarnings = F)
 dir.create(here("data-raw"), showWarnings = F)
+dir.create(here("data"), showWarnings = F)
 
-df_clin_children <- synGetChildren(synid_clin_data) %>%
-  as.list %>%
-  purrr::map_dfr(.x = .,
-                 .f = as_tibble)
+# Rdata version:
+data_list <- genieBPC::pull_data_synapse(cohort = "BrCa",
+                                         version = "v1.2-consortium")
+# CSV versions just in case:
+genieBPC::pull_data_synapse(cohort = "BrCa",
+                            version = "v1.2-consortium",
+                            download_location = "data-raw")
+# Move the CSV versions out of the subfolder:
+purrr::walk(
+  .x = here('data-raw', 'BrCa_v1.2', 
+     dir(here('data-raw', 'BrCa_v1.2'))),
+  .f = file_move,
+  new_path = here('data-raw')
+)
+fs::dir_delete(here('data-raw', 'BrCa_v1.2'))
 
-if (any(stringr::str_detect(df_clin_children$name, ".csv^"))) {
-  warning("Non-CSV files unexpectedly contained in {synid_clin_data}.")
-}
+# Save the Rdata version:
+readr::write_rds(x = data_list,
+                 file = here('data-raw', 'data_list.rds'))
 
-syn_store_in_dataraw <- function(sid) {
-  synGet(entity = sid, downloadLocation = here("data-raw"))
-}
-
-purrr::walk(.x = df_clin_children$id, 
-            .f = syn_store_in_dataraw)
