@@ -14,32 +14,29 @@ library(janitor)
 library(glue)
 library(genieBPC)
 library(ggplot2)
+library(lobstr) # just for lobstr::tree - more readable
 
-read_wrap <- function(p) {
-  read_csv(file = here("data-raw", p), show_col_types = F)
-}
+data_list <- readr::read_rds(here("data-raw", "data_list.rds"))
 
-dft_ca_radtx <- read_wrap("ca_radtx_dataset.csv")
-dft_ca_ind <- read_wrap("cancer_level_dataset_index.csv")
-dft_ca_nonind <- read_wrap("cancer_level_dataset_non_index.csv")
-dft_ca_panel <- read_wrap("cancer_panel_test_level_dataset.csv")
+dft_pt_char <- data_list$BrCa_v1.2$pt_char
+dft_ca_dx_index <- data_list$BrCa_v1.2$ca_dx_index
+dft_ca_dx_non_index <- data_list$BrCa_v1.2$ca_dx_non_index
+dft_ca_drugs <- data_list$BrCa_v1.2$ca_drugs
 
-dft_img <- read_wrap("imaging_level_dataset.csv")
-dft_med_onc <- read_wrap("med_onc_note_level_dataset.csv")
-dft_path <- read_wrap("pathology_report_level_dataset.csv")
+dft_prissmm_imaging <- data_list$BrCa_v1.2$prissmm_imaging
+dft_prissmm_pathology <- data_list$BrCa_v1.2$prissmm_pathology
+dft_prissmm_md <- data_list$BrCa_v1.2$prissmm_md
+dft_tumor_marker <- data_list$BrCa_v1.2$tumor_marker
 
-dft_pt <- read_wrap("patient_level_dataset.csv")
-dft_regimen <- read_wrap("regimen_cancer_level_dataset.csv")
-dft_tm <- read_wrap("tm_level_dataset.csv")
-
-glimpse(dft_ca_radtx)
-glimpse(dft_ca_ind)
-glimpse(dft_ca_panel)
-glimpse(dft_img)
-glimpse(dft_med_onc)
-glimpse(dft_path)
-glimpse(dft_regimen)
-glimpse(dft_tm)
+# 
+# glimpse(dft_ca_radtx)
+# glimpse(dft_ca_dx_index)
+# glimpse(dft_ca_panel)
+# glimpse(dft_img)
+# glimpse(dft_med_onc)
+# glimpse(dft_path)
+# glimpse(dft_regimen)
+# glimpse(dft_tm)
 
 dft_regimen %>% tabyl(redcap_ca_index) # Most (not all) associated with a BPC cancer, seems like an obvious filter.
 
@@ -198,7 +195,7 @@ dfp_top_drugs %>% View(.)
 # Some exploration needed on the cancer level dataset too, to figure out how the primary, mets, etc are related to ca_seq.
 
 # From Jen's email: mapping breast cancer sites.
-dft_ca_ind %>%
+dft_ca_dx_index %>%
   # variables needed for people who were stage IV at dx:
   select(record_id, 
          stage_dx_iv,
@@ -207,7 +204,7 @@ dft_ca_ind %>%
          contains("ca_first_dmets"))
   # Now something I don't get:  How can they be stage 4 at dx but not have dmets?
   
-dft_ca_ind %>%
+dft_ca_dx_index %>%
   # variables needed for people who were stage IV at dx:
   select(record_id, 
          stage_dx_iv,
@@ -271,76 +268,101 @@ ggplot(aes(x = tt_pfs_i_or_m_adv_days)) +
 
 ca_dx_non_index %>% count(record_id) %>% arrange(desc(n)) %>% head
 
-# an example of someone with a non-index cancer after an index cancer: GENIE-MSK-P-0017796
 
-#' @details Pulls the progression times for participants who experienced
-#'    progression (but not death).  For exmaple, if you a user input
-#'    prefix = "pfs_i_or_m_adv" then the function returns progression times
-#'    for participants under that event.  The progression times are 
-#'    tt_pfs_i_or_m_adv_\*, where \* is days, mos or yrs.
-#'    
-#'    This function would never be appropriate
-#'    for survival.  It's intended purpose is 
-#' @param ca_dat A BPC index cancer dataset.
-#' @param prefix A character vector for the event/time variables of interest (example: prefix = "pfs_i_or_m_adv")
-get_progressed_timing <- function(ca_dat, prefix) {
+pt_pfs_i_or_m <- get_progressed_timing(ca_dat = dft_ca_dx_index, 
+                                       prefix = "pfs_i_or_m_adv")
+pt_pfs_i_or_m %>% glimpse
+
+# Examples of participants with lots of regimens: 
+#   GENIE-MSK-P-0029140
+#   GENIE-MSK-P-0002390 
+#   GENIE-DFCI-002929
+
+# Intervals for one such subject:
+dft_ca_drugs %>% 
+  filter(record_id %in% "GENIE-DFCI-002929") %>% 
+  select(regimen_drugs, dx_reg_start_int, reg_start_end_all_int) %>% 
+  arrange(dx_reg_start_int) %>% 
+  glimpse
+# note that reg_start_end_all_int is from the start of the regimen not dx.
+
+#' @title Filter Data List by Progression Timing
+filter_dl_by_pt <- function(d_list,
+                            prog_timing) {
+  # filter down to only the data you need to create plots of drug use.
+  cohort_name <- names(data_list) 
   
-  stat_var <- paste0(prefix, '_status')
-  tt_d <- paste0('tt_', prefix, '_days')
-  tt_m <- paste0('tt_', prefix, '_mos')
-  tt_y <- paste0('tt_', prefix, '_yrs')
+  if (length(cohort_name) > 1) abort("Only designed for one cohort.")
   
-  ca_dat %>%
-    as_tibble(.) %>%
-    filter(.data[[stat_var]] %in% 1) %>%
-    # A couple of quick variables to make the filter more readable:
-    mutate(
-      did_not_die = !(os_dx_status %in% 1),
-      pfs_time_lt_os_time = case_when(
-        is.na(.data[[tt_d]]) ~ T,
-        is.na(tt_os_dx_days) ~ T,
-        .data[[tt_d]] < tt_os_dx_days ~ T,
-        T ~ F
-      )
-    ) %>% 
-    filter(did_not_die | pfs_time_lt_os_time) %>%
-    select(
-      record_id, 
-      ca_seq,
-      all_of(c(tt_d, tt_m, tt_y))
-    )
+  # filter
+  data_list_exposed <- data_list[[cohort_name]]
+  data_list_exposed <- data_list_exposed[c("pt_char",
+                                           "ca_dx_index",
+                                           "ca_drugs",
+                                           "cpt")]
+  
+  # Please excuse this weird restructuring.  It's just designed to 
+  #   match genieBPC::create_analytic_cohort()
+  cohort_list <- list()
+  
+  cohort_list[["cohort_pt_char"]] <- data_list_exposed[["pt_char"]] %>%
+    filter(record_id %in% prog_timing$record_id) %>%
+    as_tibble
+  
+  cohort_list[["cohort_ca_dx"]] <- data_list_exposed[["ca_dx_index"]] %>%
+    filter(record_id %in% prog_timing$record_id) %>%
+    as_tibble
+  
+  
+  cohort_list[["cohort_ca_drugs"]] <- left_join(
+    data_list_exposed[["ca_drugs"]],
+    select(prog_timing, .data[["record_id"]], .data[["tt_d"]]),
+    by = "record_id"
+  ) %>%
+    filter(record_id %in% prog_timing$record_id) %>%
+    # only regimens that started after the time specified.
+    filter(dx_reg_start_int >= tt_d) %>%
+    select(-.data[["tt_d"]]) %>%
+    as_tibble
+  
+  cohort_list[["cohort_ngs"]] <- left_join(
+    data_list_exposed[["cpt"]],
+    select(prog_timing, .data[["record_id"]], .data[["tt_d"]]),
+    by = "record_id"
+  ) %>%
+    filter(record_id %in% prog_timing$record_id) %>%
+    # only cancer panel tests that started after the time specified.
+    filter(dx_cpt_rep_days >= tt_d) %>%
+    select(-.data[["tt_d"]]) %>%
+    as_tibble
+  
+  return(cohort_list)
   
 }
 
+filter_dl_by_pt(data_list,
+                pt_pfs_i_or_m) %>%
+  lobstr::tree(., max_depth = 2)
+
+faux_cohort <- filter_dl_by_pt(data_list,
+                pt_pfs_i_or_m) 
+
+# Closer, at least it runs:
+drug_regimen_sunburst(
+  data_list$BrCa_v1.2[c("pt_char", "ca_dx_index", "ca_drugs", "cpt")],
+  faux_cohort,
+  max_n_regimens = 5)
+
+# Ah that's a shame.  This doesn't even run:
+# bleh <- pull_data_synapse("BrCa", version = "v1.2-consortium")
+# data_list <- create_analytic_cohort(bleh$BrCa_v1.2)
+# Even messing with settings we can't really get around this:
+# data_list <- create_analytic_cohort(bleh$BrCa_v1.2,
+#                                     regimen_order = 1:50,
+#                                     regimen_order_type = "within regimen")
+create_analytic_cohort(data_list$BrCa_v1.2, stage_dx = "Stage IV")
 
 
-get_progressed_timing(ca_dat = ca_dx_index, 
-                      prefix = "pfs_i_or_m_adv") %>% glimpse
-
-# Should be smaller:
-get_progressed_timing(ca_dat = ca_dx_index, 
-                      prefix = "pfs_i_and_m_adv") %>% glimpse
-
-# Goldilocks options:
-get_progressed_timing(ca_dat = ca_dx_index, 
-                      prefix = "pfs_i_adv") %>% glimpse
-get_progressed_timing(ca_dat = ca_dx_index, 
-                      prefix = "pfs_m_adv") %>% glimpse
-
-# Do we still have this huge problem of lots of people being classified as progressed 1 day after they're diagnosed?
-get_progressed_timing(ca_dat = ca_dx_index, 
-                      prefix = "pfs_i_or_m_adv") %>%
-  pull(tt_pfs_i_or_m_adv_days) %>%
-  is_less_than(7) %>%
-  sum
-  ggplot(aes(x = tt_pfs_i_or_m_adv_days)) + 
-  stat_ecdf() + 
-  theme_bw() + 
-  coord_cartesian(xlim = c(0,30))
-# yeah.  How can 50% of the non-dead ever-progressed cohort be progressing after 30 days?  Makes no sense.
-
-
-# 841 rows, 7 cols, 000183 is the first pt.
 
 
 # Time variables:
