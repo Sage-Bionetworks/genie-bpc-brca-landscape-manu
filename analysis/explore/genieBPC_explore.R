@@ -8,7 +8,7 @@ library(magrittr)
 nsclc <- pull_data_synapse("NSCLC", version = "v2.0-public")
 
 # also works:
-test <- pull_data_synapse("PANC", version = "v1.2-consortium")
+# test <- pull_data_synapse("PANC", version = "v1.2-consortium")
 # stores the dataframes all in a list (a 35 Mb list)
 nsclc$NSCLC_v2.0 %>% class
 nsclc$NSCLC_v2.0 %>% names
