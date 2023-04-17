@@ -1,0 +1,60 @@
+---
+title: "BrCa Regimens"
+author: "Alex Paynter"
+date: "2023 Apr 17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, include = F,
+                      message = F, warning = F)
+```
+
+```{r}
+library(cli) # prevents an error on version reliance.
+library(readr)
+library(vctrs)
+library(rlang)
+library(here)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(magrittr)
+library(janitor)
+library(glue)
+library(genieBPC)
+library(ggplot2)
+library(sunburstR)
+
+purrr::walk(.x = here("R", dir(here("R"))), .f = source)
+```
+
+
+```{r}
+data_list <- readr::read_rds(here("data-raw", "data_list.rds"))
+```
+
+
+## Introduction
+
+This documents shows a few outputs for the breast cancer (BrCa) BioPharma Collaborative (BPC) cohort for AACR project GENIE.  The goal is to facilitate further discussion.
+
+We left the meeting in early April with an interest in looking at medications administered after a progression or recurrence or worsening of disease.  This could take a few forms in the BPC data:
+
+- Regimens started at or after progression by medical oncologist notes.
+- Regimens started at or after progression by imaging.
+- And/or combinations of medical oncologist note and imaging.
+- Regimens started after distant metastases were noted.
+- Regimens started after after a period of no cancer, followed by a return of cancer later on (recurrence).
+
+For today we've created some outputs for the first option, regimens started at or after progression by medical oncologist note.  Participants whose death signified the progression are excluded.
+
+```{r}
+
+```
+
+
+It should be noted that progression was quick in this cohort.  For example
+
+
+## 
