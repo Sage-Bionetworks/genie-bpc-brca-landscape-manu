@@ -1,7 +1,6 @@
 ---
-title: "BrCa Regimens"
+title: "GENIE BPC BrCa post-metastasis regimens"
 author: "Alex Paynter"
-date: "2023 Apr 17"
 output: html_document
 ---
 
@@ -34,6 +33,8 @@ purrr::walk(.x = here("R", dir(here("R"))), .f = source)
 ```{r}
 data_list <- readr::read_rds(here("data-raw", "data_list.rds"))
 
+
+
 # Selects the first index cancer for participants who have more than one.
 # Reasons are:
 #   (1) the sunburst plot code won't run correctly with duplicates.
@@ -47,29 +48,43 @@ data_list$BrCa_v1.2$ca_dx_index <- data_list$BrCa_v1.2$ca_dx_index %>%
 ```
 
 ```{r}
-# need this 
-pt_pfs_m <- get_progressed_timing(
-  ca_dat = data_list$BrCa_v1.2$ca_dx_index,
-  prefix = "pfs_m_adv"
+
+# pt_pfs_m <- get_progressed_timing(
+#   ca_dat = data_list$BrCa_v1.2$ca_dx_index,
+#   prefix = "pfs_m_adv"
+# )
+# Update: Now focusing on dmets.
+dft_dmet_timing <- get_dmet_timing(
+  ca_ind_df = data_list$BrCa_v1.2$ca_dx_index
 )
 prog_cohort <- filter_dl_by_pt(data_list,
-                               pt_pfs_m)
+                               dft_dmet_timing)
 
 ```
+
+
+```{r}
+# One calculation needed for insertion into the intro material:
+n_stage_iv_no_dmets <- data_list$BrCa_v1.2$ca_dx_index %>% 
+  filter(stage_dx_iv %in% "Stage IV") %>% 
+  tabyl(ca_dmets_yn) %>%
+  # Following includes "Unknown or Not mentioned" as well as missing values in the total.
+  filter(!(ca_dmets_yn %in% "Yes")) %>%
+  pull(n) %>% 
+  sum
+```
+
 
 ## Introduction
 
 This documents shows a few outputs for the breast cancer (BrCa) BioPharma Collaborative (BPC) cohort for AACR project GENIE.  The goal is to facilitate further discussion.
 
-We left the meeting in early April with an interest in looking at medications administered after a progression or recurrence or worsening of disease.  This could take a few forms in the BPC data:
+Team members expressed an interest in looking at medications administered on or after identification of distant metastasis of cancer.  This information is encoded differently in PRISSMM for participants who are enrolled at different stages:
 
-- Regimens started at or after progression by medical oncologist notes.
-- Regimens started at or after progression by imaging.
-- And/or combinations of medical oncologist note and imaging.
-- Regimens started after distant metastases were noted.
-- Regimens started after after a period of no cancer, followed by a return of cancer later on (recurrence).
 
-For today we've created some outputs for the first option, regimens started at or after progression by medical oncologist note.  Participants whose death signified the progression are excluded.
+- Stage IV - If a patient is diagnosed at stage IV then their time of distant metastasis is the diagnosis date.  An exception is made for participants who are marked stage IV with no distant metastases (currently `r n_stage_iv_no_dmets`).
+- Stage 0-III - The time of distant metastasis is directly recorded if observed, and we examine regimens starting on or after this identification.
+
 
 ```{r}
 n_brca <- nrow(data_list$BrCa_v1.2$pt_char)
@@ -77,12 +92,12 @@ pct_of_cohort <- function(n, d = n_brca) {
   glue("{n} ({formatC(round(n/d*100,1), format = 'f', digits = 1)}%)")
 }
 
-n_prog_7d <- pt_pfs_m %>% filter(tt_d <= 7) %>% nrow %>% pct_of_cohort
-n_prog_30d <- pt_pfs_m %>% filter(tt_d <= 30) %>% nrow %>% pct_of_cohort
+n_prog_0d <- dft_dmet_timing %>% filter(tt_d <= 0) %>% nrow %>% pct_of_cohort
+n_prog_5y <- dft_dmet_timing %>% filter(tt_y <= 5) %>% nrow %>% pct_of_cohort
 
 ```
 
-It should be noted that progression was quick in this cohort and this may be an excessively loose criterion to give meaningful answers.  For example, `n_prog_7d` had progressed by 7 days after diagnosis and `n_prog_30d` had progressed by 30 days after diagnosis.
+This criterion produced a large subset, compared to what was expected for `r n_brca` total participants.  For example, `r n_prog_0d` had dmets at diagnosis and `r n_prog_5y` had dmets by 5 years after diagnosis.
 
 
 ## Sunburst plot
@@ -112,6 +127,9 @@ sun_prog_med_onc <- sunburstR::sunburst(
   colors = sun_pal
 )
 ```
+
+
+
 ```{r, include = T}
 sun_prog_med_onc
 ```
@@ -224,7 +242,7 @@ The following table shows the drugs taken after a progression was noted, sorted 
 
 "Compliment 1" shows the drug most commonly administered in regimens using this row's drug.  "Compliment 2" shows the second most common.  
 
-*Example interpretation using row 1 (may become incorrect with data updates):* Capecitabine was used by more participants (444) than any other drug.  Regimens containing capecitabine also frequently contained Trastuzumab (11.6%) and Lapatinib Ditosylate (7.6%)
+*Example interpretation using row 1 (may become incorrect with data updates):* Capecitabine was used by more participants after distant metastatses (452) than any other drug.  Regimens containing capecitabine also frequently contained Trastuzumab (10.7% of regimens with Capecitabine contained Trastuzumab) and Lapatinib Ditosylate (8.4%)
 
 ```{r, include = T}
 dfp_top_drugs %>% 
