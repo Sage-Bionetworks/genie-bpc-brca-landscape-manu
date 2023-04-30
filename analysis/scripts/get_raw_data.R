@@ -36,3 +36,9 @@ fs::dir_delete(here('data-raw', 'BrCa_v1.2'))
 readr::write_rds(x = data_list,
                  file = here('data-raw', 'data_list.rds'))
 
+
+# Update: Also want to pull a sheet shared by Brooke M. @ MSK:
+synLogin()
+classified_meds_synid <- "syn51405609"
+synGet(entity = classified_meds_synid,
+       downloadLocation = here("data"))
