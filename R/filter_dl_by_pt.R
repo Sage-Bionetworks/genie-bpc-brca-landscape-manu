@@ -23,6 +23,7 @@ filter_dl_by_pt <- function(d_list,
     as_tibble
   
   
+  
   cohort_list[["cohort_ca_drugs"]] <- left_join(
     data_list_exposed[["ca_drugs"]],
     select(prog_timing, all_of(c("record_id", "tt_d"))),
@@ -36,6 +37,9 @@ filter_dl_by_pt <- function(d_list,
     #   to get the legends to work appropriately on the sunburst plot.
     mutate(regimen_drugs = as.character(regimen_drugs)) %>%
     select(-any_of("tt_d")) 
+  
+  
+  
   
   
   
