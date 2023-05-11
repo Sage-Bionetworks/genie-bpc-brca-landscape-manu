@@ -60,7 +60,7 @@ Team members expressed an interest in looking at medications administered on or 
 
 
 ```{r, num_progressed}
-n_brca <- nrow(data_list_c1$BrCa_v1.2$pt_char)
+n_brca <- nrow(data_list_cc$BrCa_v1.2$pt_char)
 pct_of_cohort <- function(n, d = n_brca) {
   glue("{n} ({formatC(round(n/d*100,1), format = 'f', digits = 1)}%)")
 }
@@ -73,83 +73,71 @@ n_prog_5y <- dft_dmet_timing %>% filter(tt_y <= 5) %>% nrow %>% pct_of_cohort
 This criterion produced a large subset, compared to what was expected for `r n_brca` total participants.  For example, `r n_prog_0d` had dmets at diagnosis and `r n_prog_5y` had dmets by 5 years after diagnosis.
 
 
-## Sunburst plot
 
-Sunburst plots show regimens started on or after the date of distant metastasis.  There are two plots shown, with two different classfications contributed by Jesus Fuentes Antras.  These are "Class1", which is more broad than "Class1.1".  In both plots we exclude some drugs from regimens including Leuprolide Acetate, Investigational Drugs, Goserlin Acetate, Yttrium Y90 Ibritumomab Tiuxetan, and sever "other" categories.
 
-*Note:* For participants with multiple index cancers we selected the first one.  This is due to (1) limitations in the plotting tools, which can be worked around with more time, and (2) issues with considering two cancers in the same person to be independent.
+
+## Medication classification
+
+The medications in this sheet are classified starting from a scheme supplied by Jesus Fuentes Antras.  We further iterated to use "Class1" from that sheet, but breaking out several important therapies, such as anti-HER2 targeted regimens, into their own category.  Some notes on the current mapping:
+
+- Medications are broken into the following groups: \{`r dft_drug_map$class_comp %>% unique %>% sort %>% paste(collapse = ", ")`\}.
+- These groups are mutually exclusive.
+- The groups are **NOT** collectively exhaustive.  The mediations in the original regimen data which are excluded from our outputs here are `r dft_drug_map %>% filter(is.na(class_comp)) %>% pull(agent) %>% unique %>% sort %>% paste(collapse = ", ")`.
+
+
+
 
 
 
 ```{r, create_sunbursts}
-prog_sun_obj_c1 <- genieBPC::drug_regimen_sunburst(
-  data_list_c1$BrCa_v1.2[c("pt_char", "ca_dx_index", "ca_drugs", "cpt")],
-  prog_cohort_c1,
+prog_sun_obj_cc <- genieBPC::drug_regimen_sunburst(
+  data_list_cc$BrCa_v1.2[c("pt_char", "ca_dx_index", "ca_drugs", "cpt")],
+  prog_cohort_cc,
   max_n_regimens = 3
 )
 
 set.seed(37) # for color sampling.
 # turbo but avoiding the highlighter green.
 
-sun_pal_c1 <- make_sun_pal(
-  size = nrow(prog_sun_obj_c1$treatment_history)
+sun_pal_cc <- make_sun_pal(
+  size = nrow(prog_sun_obj_cc$treatment_history)
 )
 
-sun_prog_med_onc_c1 <- sunburstR::sunburst(
-  prog_sun_obj_c1$treatment_history,
+sun_prog_med_onc_cc <- sunburstR::sunburst(
+  prog_sun_obj_cc$treatment_history,
   legend = F,
   count = T,
-  colors = sun_pal_c1
+  colors = sun_pal_cc
 )
 
 
-
-
-# Repeat for C1.1:
-prog_sun_obj_c1.1 <- genieBPC::drug_regimen_sunburst(
-  data_list_c1.1$BrCa_v1.2[c("pt_char", "ca_dx_index", "ca_drugs", "cpt")],
-  prog_cohort_c1.1,
-  max_n_regimens = 3
-)
-set.seed(37)
-sun_pal_c1.1 <- make_sun_pal(
-  size = nrow(prog_sun_obj_c1.1$treatment_history)
-)
-sun_prog_med_onc_c1.1 <- sunburstR::sunburst(
-  prog_sun_obj_c1.1$treatment_history,
-  legend = F,
-  count = T,
-  colors = sun_pal_c1.1
-)
 ```
 
 
-### Sunburst plot using Class1
+
+
+## Sunburst plot 
+
+Sunburst plots show regimens started on or after the date of distant metastasis.  The inner ring shows the first regimen, second ring shows the second regimen, and so on.  
+
+*Note:* For participants with multiple index cancers we selected the first one.  This alleviates the potential bias in double counting participants.
 
 ```{r, plot-sun-class-one, include = T}
-sun_prog_med_onc_c1
+sun_prog_med_onc_cc
 ```
 
-Shows the first two regimens patients started on or after a progression was noted by medical oncologist.
-
-
-### Sunburst plot using Class1.1
-
-```{r, plot-sun_class_one_point_one, include = T}
-sun_prog_med_onc_c1.1
-```
-
+This figures is limited to the first three regimens patients started on or after a distant metastasis was noted.
 
 
 
 
 ```{r, eval = T}
 # get a 1-row-per-drug dataset:
-dft_drug <- prog_cohort_c1.1$cohort_ca_drugs %>% 
+dft_drug <- prog_cohort_cc$cohort_ca_drugs %>% 
   # Get only the index cancers:
   left_join(
     select(
-      prog_cohort_c1.1$cohort_ca_dx,
+      prog_cohort_cc$cohort_ca_dx,
       record_id, ca_seq
     ),
     ., 
@@ -250,13 +238,11 @@ dfp_top_drugs <- dfp_top_drugs %>%
   mutate(drug = str_replace(drug, "\\(.*\\)", ""))
 ```
 
-## Medications using Class1.1
+## Medications 
 
 The following table shows the drugs taken after a distant metastasis was noted, sorted by the number of participants who took them (n) in any regimen started on or after the dmet.  This only includes drugs associated with the index cancer.
 
 "Compliment 1" shows the drug class most commonly administered along with the drug.  "Compliment 2" shows the second most common.  
-
-*Example interpretation using row 1 (may become incorrect with data updates):* Microtubule inhibitors were used by more participants in an index cancer regimen after distant metastatses (560) than any other drug.  Regimens containing microtubule inhibitors also frequently contained antiher2 drugs (42.7% of regimens with microtubule inhibitors contained antiher2 drugs) and platinum (5.4%).
 
 ```{r, include = T, eval = T}
 dfp_top_drugs %>% 
@@ -265,97 +251,17 @@ dfp_top_drugs %>%
          `Compliment 1` = first, 
          `Compliment 2` = second) %>%
   huxtable::hux(.) %>%
-  theme_striped(.)
+  theme_compact(.)
   
 ```
 
 
-```{r}
-dft_drug_c1 <- prog_cohort_c1$cohort_ca_drugs %>% 
-  # Get only the index cancers:
-  left_join(
-    select(
-      prog_cohort_c1.1$cohort_ca_dx,
-      record_id, ca_seq
-    ),
-    ., 
-    by = c("record_id", "ca_seq")
-  ) %>% 
-  select(record_id:redcap_ca_index,
-         drugs_drug_1:drug_start_end_or_lastadm_int_5) %>%
-  mutate(across(
-    c(contains("drugs_drug_"), drugs_admin),
-    .fn = ~ vec_cast(.x, to = "character"))
-  ) %>%
-  mutate(
-    across(
-      .cols = drugs_startdt_int_1:drug_start_end_or_lastadm_int_5,
-      .fns = as_double
-    )
-  )
-
-
-
-# split off the character values, we'll do those separately
-#   to avoid casting issues.
-dft_drug_c1_char <- dft_drug_c1 %>%
-  select(record_id, 
-         regimen_number, 
-         ca_seq,
-         drugs_drug_1: drugs_drug_5)
-
-dft_drug_c1 %<>%
-  select(-contains("drugs_drug_")) %>%
-  pivot_longer(
-    cols = drugs_startdt_int_1:drug_start_end_or_lastadm_int_5,
-    names_to = "var",
-    values_to = "value"
-  ) %>%
-  # Because "drug_num" is confusing when we have "drugs_num" in 
-  #   the raw data.
-  # This is only an id for drug within regimen within person.
-  mutate(drug_id = readr::parse_number(var),
-         var = stringr::str_replace(var, "_[0-5]", "")) %>%
-  pivot_wider(names_from = "var", values_from = "value") %>%
-  select(record_id, 
-         contains("regimen_number"), 
-         drug_id, 
-         everything()) 
-
-
-# Now do it again for the cluster of character columns.
-#   All the previous ones were integer/double.
-dft_drug_c1_char %<>%
-  pivot_longer(
-    cols = drugs_drug_1: drugs_drug_5,
-    names_to = "var",
-    values_to = "value"
-  ) %>%
-  # Because "drug_num" is confusing when we have "drugs_num" in 
-  #   the raw data.
-  # This is only an id for drug within regimen within person.
-  mutate(drug_id = readr::parse_number(var),
-         var = stringr::str_replace(var, "_[0-5]", "")) %>%
-  # because there is only one column we don't need to pivot here,
-  #  just rename.
-  select(record_id, regimen_number, drug_id, drug = value)
-
-dft_drug_c1 <-
-  left_join(dft_drug_c1, dft_drug_c1_char, 
-            by = c("record_id", "regimen_number", "drug_id")) %>%
-  relocate(drug, .before = drugs_startdt_int)
-
-# empty rows here have no meaning - it's just regimens with less
-#   than 5 drugs which is not suprising or interesting.
-dft_drug_c1 %<>%
-  filter(!is.na(drug))
-```
 
 
 
 
 ```{r}
-dft_bca <- prog_cohort_c1$cohort_ca_dx %>%
+dft_bca <- prog_cohort_cc$cohort_ca_dx %>%
   select(record_id, bca_subtype) %>%
   mutate(
     bca_subtype = forcats::fct_na_value_to_level(
@@ -376,12 +282,18 @@ dft_bca <- prog_cohort_c1$cohort_ca_dx %>%
   ungroup()
 
 
-dft_drug_her_ct <- dft_drug_c1 %>%
+dft_drug_her_ct <- dft_drug %>%
   select(record_id, drug) %>%
   distinct() %>%
   left_join(., dft_bca, by = "record_id") %>%
   count(bca_subtype, bca_group_ct, drug) %>%
-  mutate(drug = factor(drug)) %>%
+  mutate(
+    drug = factor(drug),
+    # group these so the targetted therapies are all together:
+    drug = forcats::fct_relevel(drug, "antiher2", after = Inf),
+    drug = forcats::fct_relevel(drug, "pi3k pathway inhibitor", after = Inf),
+    drug = forcats::fct_relevel(drug, "other targetted", after = Inf)
+  ) %>%
   mutate(
     prop = n/bca_group_ct,
     str = glue("n={n} ({formatC(prop*100, digits = 1, format = 'f')}%)")
@@ -397,7 +309,8 @@ gg_group_her_drug <- ggplot(data = dft_drug_her_ct,
   geom_text(size = 2.5, nudge_x = .05, hjust = 0, 
             aes(label = str)) + 
   facet_wrap(vars(drug),
-             ncol = 1) + 
+             ncol = 2,
+             dir = "v") + 
   scale_fill_manual(
     name = "Subtype",
     values = c('#4477AA', '#EE6677', '#228833', '#CCBB44', '#66CCEE', '#AA3377')
@@ -427,7 +340,7 @@ Alternative way to view the drug classes and HR/HER status.  Below we show the p
 gg_group_her_drug
 ```
 
-This could be repeated for the finer classes of drug classification (e.g. Class 1.1, Class 1.2) if needed.
+
 
 
 

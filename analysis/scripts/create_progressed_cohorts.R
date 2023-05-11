@@ -35,34 +35,49 @@ dft_med_classified <- dft_med_classified %>%
     exclude = Exclude
   )
 
-dft_med_classified %>% pull(regimen) %>% unique %>% length
+# dft_med_classified %>% pull(regimen) %>% unique %>% length
+
+
+
+# Update from May 10: We want a compromise between class1 and class1.1.
+# Pedram mentioned at least 3 categories being pulled out:
+# - anti-her2, which is targetted by class1.
+# - pd3k, which is targetted by class1.
+# - possibly pdl1?  Can't recall on that, skipping for now.
+
+vec_special_targeted <- c("antiher2", "pi3k pathway inhibitor")
+
+dft_med_classified %<>%
+  # Causes problems with sunburst plots where "-" separates rings.
+  mutate(class1.1 = stringr::str_replace(class1.1,
+                                         "-",
+                                         "")) %>%
+  mutate(class_comp = case_when(
+    is.na(class1) ~ NA_character_,
+    class1 %in% "targeted" & 
+      class1.1 %in% vec_special_targeted ~ class1.1, 
+    class1 %in% "targeted" ~ "other targeted",
+    T ~ class1
+  ))
+
+dft_drug_map <- dft_med_classified %>%
+  select(agent, class_comp) %>%
+  group_by(agent) %>% 
+  slice(1) %>%
+  ungroup()
 
 dft_reg_map <- dft_med_classified %>%
   group_by(record_id, regimen_number, ca_seq, regimen) %>%
   summarize(
-    regimen_c1 = paste0(sort(unique(class1)), collapse = ", "),
-    regimen_c1.1 = paste0(sort(unique(class1.1)), collapse = ", "),
+    regimen_cc = paste0(sort(unique(class_comp)), collapse = ", "),
     .groups = "drop"
   ) %>%
   group_by(regimen) %>% 
   slice(1) %>%
-  select(regimen, regimen_c1, regimen_c1.1) %>%
+  select(regimen, regimen_cc) %>%
   ungroup()
 
-# The sunburst code uses dashes as special characters so "pd-l1" and "ctla-4" will cause problems.  We can just remove those without too much loss of info:
-dft_reg_map %<>%
-  mutate(regimen_c1.1 = stringr::str_replace(regimen_c1.1,
-                                             "-",
-                                             "")) 
 
-dft_drug_map <- dft_med_classified %>%
-  select(agent, class1, class1.1) %>%
-  mutate(class1.1 = stringr::str_replace(class1.1,
-                                             "-",
-                                             "")) %>%
-  group_by(agent) %>% 
-  slice(1) %>%
-  ungroup()
 
 
 
@@ -71,124 +86,67 @@ data_list$BrCa_v1.2$ca_dx_index <- data_list$BrCa_v1.2$ca_dx_index %>%
   slice(1) %>%
   ungroup
 
-data_list_c1 <- data_list
-data_list_c1.1 <- data_list
+data_list_cc <- data_list
+# data_list_c1.1 <- data_list
 
 # replace the list of drugs with the list of regimens from this set:
-data_list_c1$BrCa_v1.2$ca_drugs <- data_list_c1$BrCa_v1.2$ca_drugs %>%
+data_list_cc$BrCa_v1.2$ca_drugs <- data_list_cc$BrCa_v1.2$ca_drugs %>%
   mutate(regimen_drugs = as.character(regimen_drugs)) %>%
   left_join(
     .,
-    select(dft_reg_map, regimen, regimen_c1),
+    select(dft_reg_map, regimen, regimen_cc),
     by = c(regimen_drugs = "regimen")
   ) %>%
-  # Can't filter here due to the genieBPC function below breaking:
-  # mutate(regimen_c1 = if_else(is.na(regimen_c1) | regimen_c1 %in% "",
-  #                             "leuprolide, inv_drug, other",
-  #                             regimen_c1)) %>%
-  filter(!(regimen_c1 %in% "") & !is.na(regimen_c1)) %>%
-  mutate(regimen_drugs = factor(regimen_c1)) %>%
-  select(-regimen_c1)
+  filter(!(regimen_cc %in% "") & !is.na(regimen_cc)) %>%
+  mutate(regimen_drugs = factor(regimen_cc)) %>%
+  select(-regimen_cc)
 
 
 
 # Fix the regimen numbering - required for the genieBPC package function:
-data_list_c1$BrCa_v1.2$ca_drugs <- data_list_c1$BrCa_v1.2$ca_drugs %>%
+data_list_cc$BrCa_v1.2$ca_drugs <- data_list_cc$BrCa_v1.2$ca_drugs %>%
   arrange(record_id, ca_seq, regimen_number) %>%
   group_by(record_id, ca_seq) %>%
   mutate(regimen_number = 1:n()) %>%
   ungroup
 
 
-data_list_c1$BrCa_v1.2$ca_drugs <- 
-  data_list_c1$BrCa_v1.2$ca_drugs %>% 
+data_list_cc$BrCa_v1.2$ca_drugs <- 
+  data_list_cc$BrCa_v1.2$ca_drugs %>% 
   mutate(
     across(
       .cols = matches("^drugs_drug_[0-9]$"),
       .fns = (function(x) {
         x <- as.character(x)
         x <- stringr::str_replace(x, "\\(.*", "")
-        x <- map_drug(x, dft_drug_map, type = "class1")
+        x <- map_drug(x, dft_drug_map, type = "class_comp")
         return(x)
       })
     )) 
 
 
 
-
-
-
-
-# Repeat for c1.1:
-data_list_c1.1$BrCa_v1.2$ca_drugs <- data_list_c1.1$BrCa_v1.2$ca_drugs %>%
-  mutate(regimen_drugs = as.character(regimen_drugs)) %>%
-  left_join(
-    .,
-    select(dft_reg_map, regimen, regimen_c1.1),
-    by = c(regimen_drugs = "regimen")
-  ) %>%
-  # It does also work to do this, or something similar, if you want to include Leuprolide or Cyclophosphamide later on.
-  # mutate(regimen_c1 = if_else(is.na(regimen_c1) | regimen_c1 %in% "",
-  #                             "inv drug or leup", 
-  #                             regimen_c1)) %>%
-  filter(!(regimen_c1.1 %in% "") & !is.na(regimen_c1.1)) %>%
-  mutate(regimen_drugs = factor(regimen_c1.1)) %>%
-  select(-regimen_c1.1)
-
-data_list_c1.1$BrCa_v1.2$ca_drugs <- data_list_c1.1$BrCa_v1.2$ca_drugs %>%
-  arrange(record_id, ca_seq, regimen_number) %>%
-  group_by(record_id, ca_seq) %>%
-  mutate(regimen_number = 1:n()) %>%
-  ungroup
-
-
-data_list_c1.1$BrCa_v1.2$ca_drugs <- 
-  data_list_c1.1$BrCa_v1.2$ca_drugs %>% 
-  mutate(
-    across(
-      .cols = matches("^drugs_drug_[0-9]$"),
-      .fns = (function(x) {
-        x <- as.character(x)
-        x <- stringr::str_replace(x, "\\(.*", "")
-        x <- map_drug(x, dft_drug_map, type = "class1.1")
-        return(x)
-      })
-    )) 
 
 
 
 
 
 dft_dmet_timing <- get_dmet_timing(
-  ca_ind_df = data_list_c1$BrCa_v1.2$ca_dx_index
+  ca_ind_df = data_list_cc$BrCa_v1.2$ca_dx_index
 )
-prog_cohort_c1 <- filter_dl_by_pt(
-  d_list = data_list_c1,
+prog_cohort_cc <- filter_dl_by_pt(
+  d_list = data_list_cc,
   dft_dmet_timing
-)
-
-dft_dmet_timing_c1.1 <- get_dmet_timing(
-  ca_ind_df = data_list_c1.1$BrCa_v1.2$ca_dx_index
-)
-
-
-data_list_c1.1$BrCa_v1.2$ca_drug
-prog_cohort_c1.1 <- filter_dl_by_pt(
-  d_list = data_list_c1.1,
-  dft_dmet_timing_c1.1
 )
 
 save(
   data_list,
-  data_list_c1,
-  data_list_c1.1,
+  data_list_cc,
   dft_dmet_timing,
-  dft_dmet_timing_c1.1,
   dft_med_classified,
   dft_drug_map,
   dft_reg_map,
-  prog_cohort_c1,
-  prog_cohort_c1.1,
+  prog_cohort_cc,
   file = here("data", "prog_cohorts.Rda")
 )
 
