@@ -61,10 +61,21 @@ dft_med_classified %<>%
   ))
 
 dft_drug_map <- dft_med_classified %>%
-  select(agent, class_comp) %>%
+  select(agent, class1, class1.1, exclude, class_comp) %>%
   group_by(agent) %>% 
   slice(1) %>%
   ungroup()
+
+# Update May 15: Share with Shawn for classification help.
+dft_drug_map %>% 
+  arrange(class1, class1.1, agent) %>%
+  readr::write_csv(x = .,
+                   file = here("data", "drug_map.csv"))
+dft_drug_map %<>%
+  arrange(agent) %>%
+  select(agent, class_comp)
+  
+  
 
 dft_reg_map <- dft_med_classified %>%
   group_by(record_id, regimen_number, ca_seq, regimen) %>%

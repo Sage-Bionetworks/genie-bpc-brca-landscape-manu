@@ -8,10 +8,12 @@
 # This login will expire every 24h, and should be replaced with a PAT
 #   access ASAP.
 
+library(cli)
 library(synapser)
 library(here)
 library(genieBPC)
 library(fs)
+library(purrr)
 
 dir.create(here("data-raw"), showWarnings = F)
 dir.create(here("data"), showWarnings = F)
