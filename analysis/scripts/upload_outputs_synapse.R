@@ -6,3 +6,8 @@ synLogin()
 synapser::File(here("analysis", "reports", "brca_regimens.html"),
                parent = output_brca_synid) %>%
   synStore()
+
+
+synpser::File(here("data-raw", "drug_map.csv"),
+              parent = output_brca_synid) %>%
+  synStore()
