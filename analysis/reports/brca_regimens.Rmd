@@ -23,9 +23,9 @@ library(stringr)
 library(magrittr)
 library(janitor)
 library(glue)
-library(genieBPC)
+# library(genieBPC)
 library(ggplot2)
-library(sunburstR)
+# library(sunburstR)
 library(huxtable)
 
 purrr::walk(.x = here("R", dir(here("R"))), .f = source)
@@ -33,7 +33,9 @@ purrr::walk(.x = here("R", dir(here("R"))), .f = source)
 
 
 ```{r}
-# data_list <- readr::read_rds(here("data-raw", "data_list.rds"))
+# The data list in data-raw/data_list.rds still has the sarcoma patients,
+#   And participants who have multiple index cancers.  To avoid this,
+#   we pull from the processed data_list at:
 load(here("data", "prog_cohorts.Rda"))
 ```
 
@@ -51,9 +53,9 @@ n_stage_iv_no_dmets <- data_list$BrCa_v1.2$ca_dx_index %>%
 
 ## Introduction
 
-This documents shows a few outputs for the breast cancer (BrCa) BioPharma Collaborative (BPC) cohort for AACR project GENIE.  
+This documents shows a few outputs for the breast cancer (BrCa) BioPharma Collaborative (BPC) cohort for AACR project GENIE. 
 
-Team members expressed an interest in looking at medications administered on or after identification of distant metastasis of cancer.  This information is encoded differently in PRISSMM for participants who are enrolled at different stages:
+Team members expressed an interest in looking at medications administered on or after identification of distant metastasis of cancer.  **This entire document is limited to drugs given on or after dmets at the moment.**  This information is encoded differently in PRISSMM for participants who are enrolled at different stages:
 
 - Stage IV - If a patient is diagnosed at stage IV then their time of distant metastasis is the diagnosis date.  An exception is made for participants who are marked stage IV with no distant metastases (currently `r n_stage_iv_no_dmets`).
 - Stage 0-III - The time of distant metastasis is directly recorded if observed, and we examine regimens starting on or after this identification.
@@ -72,61 +74,11 @@ n_prog_5y <- dft_dmet_timing %>% filter(tt_y <= 5) %>% nrow %>% pct_of_cohort
 
 This criterion produced a large subset, compared to what was expected for `r n_brca` total participants.  For example, `r n_prog_0d` had dmets at diagnosis and `r n_prog_5y` had dmets by 5 years after diagnosis.
 
+The cohort is also filtered so that:
 
+1. Participants with Sarcomas (by `ca_hist_adeno_squamous`) are removed.
+1. For participants with more than one index cancer, the first one is selected for analysis.
 
-
-
-## Medication classification
-
-The medications in this sheet are classified starting from a scheme supplied by Jesus Fuentes Antras.  We further iterated to use "Class1" from that sheet, but breaking out several important therapies, such as anti-HER2 targeted regimens, into their own category.  Some notes on the current mapping:
-
-- Medications are broken into the following groups: \{`r dft_drug_map$class_comp %>% unique %>% sort %>% paste(collapse = ", ")`\}.
-- These groups are mutually exclusive.
-- The groups are **NOT** collectively exhaustive.  The mediations in the original regimen data which are excluded from our outputs here are `r dft_drug_map %>% filter(is.na(class_comp)) %>% pull(agent) %>% unique %>% sort %>% paste(collapse = ", ")`.
-
-
-
-
-
-
-```{r, create_sunbursts}
-prog_sun_obj_cc <- genieBPC::drug_regimen_sunburst(
-  data_list_cc$BrCa_v1.2[c("pt_char", "ca_dx_index", "ca_drugs", "cpt")],
-  prog_cohort_cc,
-  max_n_regimens = 3
-)
-
-set.seed(37) # for color sampling.
-# turbo but avoiding the highlighter green.
-
-sun_pal_cc <- make_sun_pal(
-  size = nrow(prog_sun_obj_cc$treatment_history)
-)
-
-sun_prog_med_onc_cc <- sunburstR::sunburst(
-  prog_sun_obj_cc$treatment_history,
-  legend = F,
-  count = T,
-  colors = sun_pal_cc
-)
-
-
-```
-
-
-
-
-## Sunburst plot 
-
-Sunburst plots show regimens started on or after the date of distant metastasis.  The inner ring shows the first regimen, second ring shows the second regimen, and so on.  
-
-*Note:* For participants with multiple index cancers we selected the first one.  This alleviates the potential bias in double counting participants.
-
-```{r, plot-sun-class-one, include = T}
-sun_prog_med_onc_cc
-```
-
-This figures is limited to the first three regimens patients started on or after a distant metastasis was noted.
 
 
 
@@ -214,47 +166,6 @@ dft_drug %<>%
 ```
 
 
-```{r, eval = T}
-
-dfp_top_drugs <- dft_drug %>%
-  group_by(record_id, drug) %>%
-  summarize(observed = 1, .groups = "drop") %>%
-  group_by(drug) %>%
-  summarize(n = sum(observed)) %>%
-  arrange(desc(n)) %>%
-  head(10)
-
-dc_wrap <- function(drug_name) {
-  get_drug_compliments(dft_drug, drug_name) %>%
-    reshape_drug_compliments()
-}
-
-dfp_top_drugs <- dfp_top_drugs %>%
-  mutate(df_top_comp = purrr::pmap(
-    .l = list(drug_name = drug),
-    .f = dc_wrap
-  )) %>%
-  tidyr::unnest(df_top_comp) %>%
-  mutate(drug = str_replace(drug, "\\(.*\\)", ""))
-```
-
-## Medications 
-
-The following table shows the drugs taken after a distant metastasis was noted, sorted by the number of participants who took them (n) in any regimen started on or after the dmet.  This only includes drugs associated with the index cancer.
-
-"Compliment 1" shows the drug class most commonly administered along with the drug.  "Compliment 2" shows the second most common.  
-
-```{r, include = T, eval = T}
-dfp_top_drugs %>% 
-  select(Drug = drug, 
-         n = n, 
-         `Compliment 1` = first, 
-         `Compliment 2` = second) %>%
-  huxtable::hux(.) %>%
-  theme_compact(.)
-  
-```
-
 
 
 
@@ -266,7 +177,7 @@ dft_bca <- prog_cohort_cc$cohort_ca_dx %>%
   mutate(
     bca_subtype = forcats::fct_na_value_to_level(
       bca_subtype, 
-      level = "(Unknown)"
+      level = "NC or NR"
     ),
     bca_subtype = forcats::fct_recode(
       bca_subtype,
@@ -290,9 +201,9 @@ dft_drug_her_ct <- dft_drug %>%
   mutate(
     drug = factor(drug),
     # group these so the targetted therapies are all together:
-    drug = forcats::fct_relevel(drug, "antiher2", after = Inf),
-    drug = forcats::fct_relevel(drug, "pi3k pathway inhibitor", after = Inf),
-    drug = forcats::fct_relevel(drug, "other targetted", after = Inf)
+    drug = forcats::fct_relevel(drug, "chemo", after = 0),
+    drug = forcats::fct_relevel(drug, "endocrine", after = 1),
+    drug = forcats::fct_relevel(drug, "other targeted", after = Inf)
   ) %>%
   mutate(
     prop = n/bca_group_ct,
@@ -310,7 +221,7 @@ gg_group_her_drug <- ggplot(data = dft_drug_her_ct,
             aes(label = str)) + 
   facet_wrap(vars(drug),
              ncol = 2,
-             dir = "v") + 
+             dir = "h") + 
   scale_fill_manual(
     name = "Subtype",
     values = c('#4477AA', '#EE6677', '#228833', '#CCBB44', '#66CCEE', '#AA3377')
@@ -331,13 +242,68 @@ gg_group_her_drug <- ggplot(data = dft_drug_her_ct,
 ```
 
 
+**Note:** It might be sensible to combine or eliminate some of these categories.  For example, parpi and other targeted could be combined, or the other targeted therapies could be excluded.
 
-### HER2/HR status plot (alternate)
+## Post-dmet drugs by HR/HER2
 
-Alternative way to view the drug classes and HR/HER status.  Below we show the proporition within each subtype (e.g. within HR+, HER-) who used each class of drugs as a part of a post-dmet regimen associated with the index cancer.  
+In the following plot "NR or NC" means that the HR/HER2 information is not relevant or not complete.  
 
-```{r, plot-gg-her2-hr-drug_c1, include = T}
+```{r, plot-gg-her2-hr-drug_c1, include = T, fig.width = 8, fig.height = 6}
 gg_group_her_drug
+```
+
+
+
+
+
+```{r}
+dft_drug_map %<>%
+  mutate(
+    in_any_reg = purrr::map_lgl(
+      .x = agent,
+      .f = (function(x) {
+        is_drug_in_regimens(
+          x,
+          data_list$BrCa_v1.2$ca_drugs$regimen_drugs
+        )
+      })
+    )
+  )
+
+if (any(!dft_drug_map$in_any_reg)) {
+  cli_abort("Drugs need to be filtered before being displayed.")
+}
+
+dfp_drug_map_print <- dft_drug_map %>%
+  mutate(
+    class_comp = factor(
+      class_comp,
+      levels = levels(dft_drug_her_ct$drug)
+    )
+  ) %>%
+  select(class_comp, agent) %>%
+  arrange(class_comp, agent) %>%
+  group_by(class_comp) %>%
+  summarize(vec = list(agent)) %>%
+  mutate(class_comp = if_else(is.na(class_comp),
+                              "Excluded drugs",
+                              class_comp))
+
+list_drug_print <- dfp_drug_map_print$vec
+names(list_drug_print) <- dfp_drug_map_print$class_comp
+```
+
+
+
+## Medication classification
+
+We started from a classification scheme supplied by Jesus Fuentes Antras.  Further iterations in meetings led to the decision to keep the broad classifications for chemo and endrocrine, while breaking some of the interesting classes of cancer drugs into groups.  Some drugs were excluded due to low relevance, likely data errors, etc (see Excluded drugs at bottom).  The full list of categories and drugs, only showing drugs observed in at least one index cancer regimen, is as follows:
+
+
+```{r, output_drugs, echo = F, include = T, results = 'asis'}
+for (grp in names(list_drug_print)) {
+    cat("-", grp, '\n', paste('   -', list_drug_print[[grp]], '\n'))
+}
 ```
 
 

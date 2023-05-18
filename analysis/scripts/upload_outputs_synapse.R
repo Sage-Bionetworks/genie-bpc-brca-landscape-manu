@@ -8,6 +8,6 @@ synapser::File(here("analysis", "reports", "brca_regimens.html"),
   synStore()
 
 
-synpser::File(here("data-raw", "drug_map.csv"),
+synapser::File(here("data", "drug_map.csv"),
               parent = output_brca_synid) %>%
   synStore()
