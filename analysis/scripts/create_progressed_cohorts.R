@@ -112,7 +112,8 @@ dft_drug_map %<>%
     )
   )
 
-# Output drug map - originally for feedback from Shawn, now general.
+# Output drug map - originally for feedback from Shawn,
+#   now just for general practice.
 dft_drug_map %>%
   arrange(class1, class1.1, agent) %>%
   readr::write_csv(x = .,
@@ -122,8 +123,6 @@ dft_drug_map %<>%
   arrange(agent) %>%
   select(agent, class_comp)
   
-stop("Need to: Remove sunbursts, remove associated code, output drug lists in an orderly way.")
-
 dft_reg_map <- dft_med_classified %>%
   group_by(record_id, regimen_number, ca_seq, regimen) %>%
   summarize(
@@ -137,15 +136,14 @@ dft_reg_map <- dft_med_classified %>%
 
 
 
-
-
+# Only accept
+# Confirmed on May 15 this is what Brooke did too.
 data_list$BrCa_v1.2$ca_dx_index <- data_list$BrCa_v1.2$ca_dx_index %>%
   group_by(record_id) %>% 
   slice(1) %>%
   ungroup
 
 data_list_cc <- data_list
-# data_list_c1.1 <- data_list
 
 # replace the list of drugs with the list of regimens from this set:
 data_list_cc$BrCa_v1.2$ca_drugs <- data_list_cc$BrCa_v1.2$ca_drugs %>%
@@ -158,15 +156,6 @@ data_list_cc$BrCa_v1.2$ca_drugs <- data_list_cc$BrCa_v1.2$ca_drugs %>%
   filter(!(regimen_cc %in% "") & !is.na(regimen_cc)) %>%
   mutate(regimen_drugs = factor(regimen_cc)) %>%
   select(-regimen_cc)
-
-
-
-# Fix the regimen numbering - required for the genieBPC package function:
-data_list_cc$BrCa_v1.2$ca_drugs <- data_list_cc$BrCa_v1.2$ca_drugs %>%
-  arrange(record_id, ca_seq, regimen_number) %>%
-  group_by(record_id, ca_seq) %>%
-  mutate(regimen_number = 1:n()) %>%
-  ungroup
 
 
 data_list_cc$BrCa_v1.2$ca_drugs <- 
