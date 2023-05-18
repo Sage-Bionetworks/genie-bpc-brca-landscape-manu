@@ -19,6 +19,27 @@ purrr::walk(.x = here("R", dir(here("R"))), .f = source)
 
 data_list <- readr::read_rds(here("data-raw", "data_list.rds"))
 
+# Update May 18: Remove participants with Sarcomas.  
+#   The paper is limited in scope to only those without sarcoma, and
+#   this matches with Protiva's previous work.
+vec_not_sarcoma <- data_list$BrCa_v1.2$ca_dx_index %>%
+  select(record_id, ca_seq, ca_hist_adeno_squamous) %>%
+  filter(!(ca_hist_adeno_squamous %in% "Sarcoma")) %>%
+  pull(record_id)
+
+data_list$BrCa_v1.2 <- data_list$BrCa_v1.2 %>% 
+  purrr::map(
+    .x = .,
+    .f = (function(x) filter_df_by_rid(x, vec_not_sarcoma))
+  )
+# Open question:  Is this sane given that 20% of the cohort has missing
+#   values for this variable?  Do we need to go deeper?
+
+
+
+
+
+
 dft_med_classified <- readr::read_csv(
   file = here("data", "tx_by_class_metastatic_filt_cohort.csv")
 )
@@ -143,6 +164,18 @@ data_list$BrCa_v1.2$ca_dx_index <- data_list$BrCa_v1.2$ca_dx_index %>%
   slice(1) %>%
   ungroup
 
+
+
+
+
+
+
+
+
+
+
+
+
 data_list_cc <- data_list
 
 # replace the list of drugs with the list of regimens from this set:
@@ -178,9 +211,11 @@ data_list_cc$BrCa_v1.2$ca_drugs <-
 
 
 
+
 dft_dmet_timing <- get_dmet_timing(
   ca_ind_df = data_list_cc$BrCa_v1.2$ca_dx_index
 )
+
 prog_cohort_cc <- filter_dl_by_pt(
   d_list = data_list_cc,
   dft_dmet_timing
