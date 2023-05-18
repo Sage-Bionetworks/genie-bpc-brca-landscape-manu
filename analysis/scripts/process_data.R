@@ -93,7 +93,7 @@ dft_drug_map <- dft_med_classified %>%
 
 # Update May 17: Shawn made some additional recommendations here:
 dft_drug_map %<>%
-  # Add Rituximab for exclusions?
+  mutate(exclude = if_else(agent %in% "Rituximab", 1, exclude)) %>%
   mutate(
     class_comp = case_when(
       agent %in% c(
@@ -129,6 +129,7 @@ dft_drug_map %<>%
       agent %in% c(
         "Tegafurgimeraciloteracil Potassium"
       ) ~ "chemo",
+      agent %in% "Rituximab" ~ NA_character_,
       T ~ class_comp
     )
   )
