@@ -45,17 +45,21 @@ dft_med_classified <- dft_med_classified %>%
 # - pd3k, which is targetted by class1.
 # - possibly pdl1?  Can't recall on that, skipping for now.
 
-vec_special_targeted <- c("antiher2", "pi3k pathway inhibitor")
+vec_class1.1 <- c("antiher2", 
+                  "pi3k pathway inhibitor",
+                  "antivegf",
+                  "parpi")
 
 dft_med_classified %<>%
   # Causes problems with sunburst plots where "-" separates rings.
-  mutate(class1.1 = stringr::str_replace(class1.1,
-                                         "-",
-                                         "")) %>%
+  # Update: we're done with sunburst plots I think so time to fix:
+  # mutate(class1.1 = stringr::str_replace(class1.1,
+  #                                        "-",
+  #                                        "")) %>%
   mutate(class_comp = case_when(
     is.na(class1) ~ NA_character_,
     class1 %in% "targeted" & 
-      class1.1 %in% vec_special_targeted ~ class1.1, 
+      class1.1 %in% vec_class1.1 ~ class1.1, 
     class1 %in% "targeted" ~ "other targeted",
     T ~ class1
   ))
@@ -66,11 +70,58 @@ dft_drug_map <- dft_med_classified %>%
   slice(1) %>%
   ungroup()
 
+# Update May 17: Shawn made some additional recommendations here:
+dft_drug_map %<>%
+  # Add Rituximab for exclusions?
+  mutate(
+    class_comp = case_when(
+      agent %in% c(
+        "Ipilimumab", 
+        "Nivolumab",
+        "Pembrolizumab",
+        "Atezolizumab",
+        "Avelumab"
+      ) ~ "IC inhibitor", # immune checkpoint inhibitor.
+      agent %in% c(
+        "Trastuzumab Deruxtecan",
+        "Trastuzumab Emtansine",
+        "Lapatinib Ditosylate",
+        "Neratinib",
+        "Tucatinib"
+      ) ~ "antiher2",
+      agent %in% c(
+        "Abemaciclib",
+        "Palbociclib",
+        "Ribociclib"
+      ) ~ "CDK inhibitor",
+      agent %in% c(
+        "Apatinib",
+        "Cabozantinib Smalate",
+        "Lenvatinib Mesylate",
+        "Pazopanib Hydrochloride",
+        "Sorafenib Tosylate"
+      ) ~ "antivegf",
+      agent %in% c(
+        "Trametinib"
+      ) ~ "pi3k pathway inhibitor",
+      # This one is excluded, but just in case:
+      agent %in% c(
+        "Tegafurgimeraciloteracil Potassium"
+      ) ~ "chemo",
+      T ~ class_comp
+    )
+  )
+
 # Update May 15: Share with Shawn for classification help.
-dft_drug_map %>% 
+dft_drug_map %>%
   arrange(class1, class1.1, agent) %>%
   readr::write_csv(x = .,
                    file = here("data", "drug_map.csv"))
+
+dft_drug_map %>%
+  arrange(class1, class1.1, agent) %>%
+  View(.)
+
 dft_drug_map %<>%
   arrange(agent) %>%
   select(agent, class_comp)
