@@ -1,5 +1,5 @@
 ---
-title: "Surv step 2"
+title: "Survival BrCa"
 author: "Alex Paynter"
 output: html_document
 editor_options: 
@@ -21,13 +21,17 @@ library(dplyr)
 library(tidyr)
 library(stringr)
 library(magrittr)
+library(tibble)
 library(janitor)
 library(glue)
 library(ggplot2)
-library(huxtable)
+library(flextable)
+library(officer)
+library(cfmisc) # https://github.com/alexpaynter/cfmisc/
 
 library(survival)
 library(survminer)
+library(tranSurv)
 
 purrr::walk(
   .x = here("R", dir(here("R"))), 
@@ -37,7 +41,94 @@ purrr::walk(
 
 ```{r,load_data}
 # Can later be combined with the other survival analysis script.
-surv_dat <- load(here("data", "surv_dat.rds"))
+surv_dat <- readr::read_rds(
+  here("data", "surv_dat.rda")
+)
 
+surv_dat_pfs <- surv_dat %>%
+  filter(tt_pfs_i_and_m_adv_yrs > dx_cpt_rep_yrs)
+
+surv_dat %>% 
+  mutate(pfs_miss = is.na(tt_pfs_i_and_m_adv_yrs)) %>%
+  tabyl(pfs_miss)
+
+```
+
+<style type="text/css">
+.main-container {
+  max-width: 800px !important;
+  margin: auto;
+}
+</style>
+
+## Terms
+
+- **Delayed cohort entry** or **truncation** both refer to the time of genomic (NGS) sequencing.  This is delayed in our study because participants are only curated at the time of NGS, which is often long after diagnosis of disease.
+- **Dependent** truncation refers to when the failure time (e.g., death for overall survival) is associated with the time of cohort entry (NGS).
+
+## Truncation dependence
+
+We expect delayed cohort entry in our study based on Kehl, 2020 (10.1001/jamanetworkopen.2020.6976) and the setup in GENIE BPC.  To test this in our data we will use the estimator of Kendall's conditional tau statistic proposed by Martin and Betensky, 2005 (https://doi.org/10.1198/016214504000001538).  The IPW estimators proposed by Austin and Betensky, 2014 (doi:10.1016/j.csda.2013.11.018.) were found to have lower power for detecting dependent truncation, so we won't use those more complex estimators here.
+
+The following table shows estimates of conditional Kendall's tau.  A nonzero estimate indicates that delayed cohort entry (dependent truncation) was detected.  A negative estimate indicates that long times to sequencing (entry) are associated with short survival times, both relative to diagnosis.
+
+```{r}
+# While the Martin and Betensky estimators will be used
+#  for confirming dependent cohort entry, we will calculate
+#  some other options here to anticipate questions which
+#  may arise.
+
+dft_cken <- expand_grid(
+  fail = c("tt_os_dx_yrs"),
+  method = c("MB", "IPW1", "IPW2")
+) %>%
+  mutate(
+    trunc = "dx_cpt_rep_yrs",
+    event = case_when(
+      fail %in% "tt_os_dx_yrs" ~ "os_dx_status",
+      T ~ NA_character_ 
+    )
+  ) %>%
+  select(trunc, fail, event, method)
+
+dft_cken %<>%
+  mutate(
+    ckd = purrr::pmap(
+      .l = list(t = trunc,
+                f = fail,
+                e = event,
+                m = method),
+      .f = (function(t,f,e,m) {
+        cken_help(dat = surv_dat,
+                  trunc = t,
+                  fail = f,
+                  event = e,
+                  method = m,
+                  ci = T)
+      })
+    )
+  ) %>%
+  unnest(ckd)
+
+dfp_cken <- dft_cken %>%
+  mutate(
+    `Cond. Tau` = cfmisc::est_int_str(
+      est = est, 
+      lower = lcb,
+      upper = ucb,
+      est_digits = 2
+    ),
+    `P Value` = pval_nejm(p = p_value)
+  ) %>%
+  select(`Cond. Tau`, `P Value`, Method = method)
+```
+
+
+```{r, include = T}
+dfp_cken %>%
+  flextable(.) %>%
+  autofit(.) %>%
+  color(i = ~Method %in% "MB", color = "black") %>%
+  color(i = ~!(Method %in% "MB"), color = 'gray60')
 ```
 
