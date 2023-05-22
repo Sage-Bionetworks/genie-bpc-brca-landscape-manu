@@ -11,3 +11,7 @@ synapser::File(here("analysis", "reports", "brca_regimens.html"),
 synapser::File(here("data", "drug_map.csv"),
               parent = output_brca_synid) %>%
   synStore()
+
+synapser::File(here("data", "surv_dat.rds"),
+               parent = output_brca_synid) %>%
+  synStore()

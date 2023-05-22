@@ -27,7 +27,8 @@ library(ggplot2)
 library(huxtable)
 
 library(survival)
-library(survminer)
+# library(survminer)
+library(ggfortify)
 
 purrr::walk(
   .x = here("R", dir(here("R"))), 
@@ -89,15 +90,35 @@ dft_surv <- left_join(
 dft_surv %<>%
   filter(dx_cpt_rep_yrs < tt_os_dx_yrs)
 
-surv_obj_os <- with(
-  dft_surv,
-  Surv(
-    time = dx_cpt_rep_yrs,
-    time2 = tt_os_dx_yrs,
-    event = os_dx_status)
-)
+# Subsetting to what I need.
+dft_surv %<>% 
+  select(cohort, record_id, institution, age_dx, stage_dx, stage_dx_iv,
+         bca_subtype, dmets_stage_i_iii, dx_to_dmets_yrs,
+         os_dx_status,
+         tt_os_dx_yrs,
+         pfs_i_and_m_adv_status,
+         tt_pfs_i_and_m_adv_yrs,
+         cpt_number,
+         dx_cpt_rep_yrs)
+# surv_obj_os <- with(
+#   dft_surv,
+#   Surv(
+#     time = dx_cpt_rep_yrs,
+#     time2 = tt_os_dx_yrs,
+#     event = os_dx_status)
+# )
+# 
+# fit_os <- survfit(surv_obj_os ~ 1, data = dft_surv)
+# autoplot(fit_os)
+# 
+# fit_bca <- survfit(surv_obj_os ~ bca_subtype, data = dft_surv)
+# autoplot(fit_bca)
 
-summary(surv_obj_os)
+# Unnecessary data dump while dealing with R version issues:
+saveRDS(
+  object = dft_surv, 
+  file = here("data", "surv_dat.rds")
+)
 
 ```
 
