@@ -30,7 +30,8 @@ library(officer)
 library(cfmisc) # https://github.com/alexpaynter/cfmisc/
 
 library(survival)
-library(survminer)
+# library(survminer) # hard pass.
+library(ggsurvfit)
 library(tranSurv)
 
 purrr::walk(
@@ -41,14 +42,11 @@ purrr::walk(
 
 ```{r,load_data}
 # Can later be combined with the other survival analysis script.
-surv_dat <- readr::read_rds(
+dft_surv <- readr::read_rds(
   here("data", "surv_dat.rda")
 )
 
-surv_dat_pfs <- surv_dat %>%
-  filter(tt_pfs_i_and_m_adv_yrs > dx_cpt_rep_yrs)
-
-surv_dat %>% 
+dft_surv %>% 
   mutate(pfs_miss = is.na(tt_pfs_i_and_m_adv_yrs)) %>%
   tabyl(pfs_miss)
 
@@ -99,7 +97,7 @@ dft_cken %<>%
                 e = event,
                 m = method),
       .f = (function(t,f,e,m) {
-        cken_help(dat = surv_dat,
+        cken_help(dat = dft_surv,
                   trunc = t,
                   fail = f,
                   event = e,
@@ -132,3 +130,139 @@ dfp_cken %>%
   color(i = ~!(Method %in% "MB"), color = 'gray60')
 ```
 
+## Whole cohort survival
+
+### Risk time adjustment model
+
+Risk time adjustment assumes independent censoring, which we suspect and have tested to be false.  However, it is still by far the most common model used for truncated survival, so it provides an important comparison.
+
+```{r}
+surv_obj_os <- with(
+  dft_surv,
+  Surv(
+    time = dx_cpt_rep_yrs,
+    time2 = tt_os_dx_yrs,
+    event = os_dx_status)
+)
+
+# fit_os <- survfit(surv_obj_os ~ 1, data = dft_surv)
+
+surv_pal <- c('#bb5566', '#004488', '#ddaa33')
+
+gg_os <- survfit2(surv_obj_os ~ 1, data = dft_surv) %>%
+  ggsurvfit(color = surv_pal[1]) +
+  add_risktable(
+    risktable_stats = c(
+      "n.risk",
+      "cum.censor",
+      "cum.event"
+    )
+  ) +
+  # too many:
+  # add_censor_mark(alpha = 0.1,
+  #                 shape = 4,
+  #                 size = 2,
+  #                 color = surv_pal[3]) +
+  add_quantile(y_value = 0.5,
+               linetype = 1,
+               alpha = 0.5,
+               size = 1,
+               color = surv_pal[2]) + 
+  # these two scale calls are a manual version 
+  #   of scale_ggsurvfit()
+  # Except that we moved the limits to coord_cartesian
+  # to avoid clipping.
+  scale_y_continuous(
+    expand = c(0,0), 
+    label = scales::label_percent()
+  ) + 
+  scale_x_continuous(
+    name = "Years from cancer diagnosis",
+    expand = c(0.025,0),
+    breaks = seq(0, 100, by = 2.5)
+  ) + 
+  coord_cartesian(
+    xlim = c(0, NA),
+    ylim = c(0,1)
+  ) + 
+  labs(title = "Overall survival") + 
+  theme(
+    axis.title.y = element_blank()
+  )
+
+
+# This is ewwwy.
+# gg_os <- ggsurvplot(
+#   fit = fit_os,
+#   data = dft_surv,
+#   conf.int = F,
+#   risk.table = "absolute",
+#   ncensor.plot = T,
+#   cumevents = T,
+#   cumcensor = T,
+#   surv.plot.height = 1,
+#   risk.table.height = 0.1, # default
+#   ncensor.plot.height = 0.1,
+#   nevent.plot.height = 0.1,
+#   surv.median.line = "hv",
+#   xlab = "Years from diagnosis",
+#   ylab = "Survival",
+#   break.x.by = 5,
+#   tables.theme = 
+#     theme_cleantable(
+#       base_size = 8,
+#       font.main = c(8, "plain", "black"),
+#       font.y = c(8, "plain", "white")
+#     )
+# )
+
+
+
+```
+
+
+```{r, include = T, fig.width = 7, fig.height = 5}
+gg_os
+```
+
+
+
+
+
+
+
+
+
+
+
+## Bivariate time distribution plots
+
+```{r, include = T}
+ggplot(dft_surv,
+       aes(
+         x = tt_pfs_i_and_m_adv_yrs,
+         y = tt_os_dx_yrs
+       )) + 
+  geom_point() +
+  coord_equal()
+
+ggplot(dft_surv,
+       aes(
+         x = dx_cpt_rep_yrs,
+         y = tt_pfs_i_and_m_adv_yrs
+       )) + 
+  geom_point() +
+  coord_equal()
+
+ggplot(dft_surv,
+       aes(
+         x = dx_cpt_rep_yrs,
+         y = tt_os_dx_yrs
+       )) + 
+  geom_point() +
+  coord_equal()
+
+
+
+```
+         
