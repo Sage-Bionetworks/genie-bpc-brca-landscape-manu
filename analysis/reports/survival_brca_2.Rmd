@@ -132,6 +132,36 @@ dfp_cken %>%
 
 ## Whole cohort survival
 
+### Transformation model
+
+```{r}
+surv_obj_os_tm <- with(
+  dft_surv,
+  trSurvfit(
+    trun = dx_cpt_rep_yrs,
+    obs = tt_os_dx_yrs,
+    delta = os_dx_status
+  )
+)
+
+surv_obj_os_tm # interesting for what they output.
+
+dft_surv_os_tm <- surv_obj_os_tm$surv %>% 
+  as_tibble %>%
+  rename_all(tolower)
+
+# Amazing:  confirmed below that this wildly different KM
+# fit is risk set adjusted - in other words it matches
+# what I did with ggsurvfit() below.
+
+surv_obj_os_tm$surv
+
+plot(surv_obj_os_tm)
+
+
+```
+
+
 ### Risk time adjustment model
 
 Risk time adjustment assumes independent censoring, which we suspect and have tested to be false.  However, it is still by far the most common model used for truncated survival, so it provides an important comparison.
@@ -145,12 +175,17 @@ surv_obj_os <- with(
     event = os_dx_status)
 )
 
+
 # fit_os <- survfit(surv_obj_os ~ 1, data = dft_surv)
 
 surv_pal <- c('#bb5566', '#004488', '#ddaa33')
 
 gg_os <- survfit2(surv_obj_os ~ 1, data = dft_surv) %>%
   ggsurvfit(color = surv_pal[1]) +
+  geom_step(data = dft_surv_os_tm, 
+            inherit.aes = F,
+            aes(x = time, y = trsurv),
+            color = 'forestgreen') + 
   add_risktable(
     risktable_stats = c(
       "n.risk",
