@@ -33,6 +33,7 @@ library(survival)
 # library(survminer) # hard pass.
 library(ggsurvfit)
 library(tranSurv)
+library(ggtext)
 
 purrr::walk(
   .x = here("R", dir(here("R"))), 
@@ -130,41 +131,9 @@ dfp_cken %>%
   color(i = ~!(Method %in% "MB"), color = 'gray60')
 ```
 
-## Whole cohort survival
-
-### Transformation model
-
-```{r}
-surv_obj_os_tm <- with(
-  dft_surv,
-  trSurvfit(
-    trun = dx_cpt_rep_yrs,
-    obs = tt_os_dx_yrs,
-    delta = os_dx_status
-  )
-)
-
-surv_obj_os_tm # interesting for what they output.
-
-dft_surv_os_tm <- surv_obj_os_tm$surv %>% 
-  as_tibble %>%
-  rename_all(tolower)
-
-# Amazing:  confirmed below that this wildly different KM
-# fit is risk set adjusted - in other words it matches
-# what I did with ggsurvfit() below.
-
-surv_obj_os_tm$surv
-
-plot(surv_obj_os_tm)
+## Overall survival
 
 
-```
-
-
-### Risk time adjustment model
-
-Risk time adjustment assumes independent censoring, which we suspect and have tested to be false.  However, it is still by far the most common model used for truncated survival, so it provides an important comparison.
 
 ```{r}
 surv_obj_os <- with(
@@ -176,16 +145,48 @@ surv_obj_os <- with(
 )
 
 
-# fit_os <- survfit(surv_obj_os ~ 1, data = dft_surv)
+surv_obj_os_tm <- with(
+  dft_surv,
+  trSurvfit(
+    trun = dx_cpt_rep_yrs,
+    obs = tt_os_dx_yrs,
+    delta = os_dx_status,
+    tFun = 'linear' # default
+  )
+)
+
+surv_obj_os_tm # interesting for what they output.
+
+# The following indicates that there is a fit benefit
+#   for adding breaks.  However, I'm not clear on how to 
+#   fit the model separately and get survival curves out.
+# gof_tm_os <- gof(surv_obj_os) 
+
+dft_surv_os_tm <- surv_obj_os_tm$surv %>% 
+  as_tibble %>%
+  rename_all(tolower)
+
+# Amazing:  confirmed below that this wildly different KM
+# fit is risk set adjusted - not the standard KM curve
+# assuming no truncation.
+```
+
+
+```{r, plot_surv}
 
 surv_pal <- c('#bb5566', '#004488', '#ddaa33')
 
+vec_surv_subtitle <- glue(
+  "<span style = 'color:{surv_pal[1]};'>Transformation model</span> and 
+  <span style = 'color:{surv_pal[2]};'>Risk set adjustment  </span>"
+)
+
 gg_os <- survfit2(surv_obj_os ~ 1, data = dft_surv) %>%
-  ggsurvfit(color = surv_pal[1]) +
+  ggsurvfit(color = surv_pal[2]) +
   geom_step(data = dft_surv_os_tm, 
             inherit.aes = F,
             aes(x = time, y = trsurv),
-            color = 'forestgreen') + 
+            color = surv_pal[1]) + 
   add_risktable(
     risktable_stats = c(
       "n.risk",
@@ -198,11 +199,11 @@ gg_os <- survfit2(surv_obj_os ~ 1, data = dft_surv) %>%
   #                 shape = 4,
   #                 size = 2,
   #                 color = surv_pal[3]) +
-  add_quantile(y_value = 0.5,
-               linetype = 1,
-               alpha = 0.5,
-               size = 1,
-               color = surv_pal[2]) + 
+  # add_quantile(y_value = 0.5,
+  #              linetype = 1,
+  #              alpha = 0.5,
+  #              size = 1,
+  #              color = surv_pal[2]) + 
   # these two scale calls are a manual version 
   #   of scale_ggsurvfit()
   # Except that we moved the limits to coord_cartesian
@@ -220,41 +221,29 @@ gg_os <- survfit2(surv_obj_os ~ 1, data = dft_surv) %>%
     xlim = c(0, NA),
     ylim = c(0,1)
   ) + 
-  labs(title = "Overall survival") + 
+  labs(
+    title = "Overall survival (from diagnosis)",
+    subtitle = vec_surv_subtitle
+  ) + 
   theme(
-    axis.title.y = element_blank()
+    axis.title.y = element_blank(),
+    plot.subtitle = element_markdown()
   )
 
-
-# This is ewwwy.
-# gg_os <- ggsurvplot(
-#   fit = fit_os,
-#   data = dft_surv,
-#   conf.int = F,
-#   risk.table = "absolute",
-#   ncensor.plot = T,
-#   cumevents = T,
-#   cumcensor = T,
-#   surv.plot.height = 1,
-#   risk.table.height = 0.1, # default
-#   ncensor.plot.height = 0.1,
-#   nevent.plot.height = 0.1,
-#   surv.median.line = "hv",
-#   xlab = "Years from diagnosis",
-#   ylab = "Survival",
-#   break.x.by = 5,
-#   tables.theme = 
-#     theme_cleantable(
-#       base_size = 8,
-#       font.main = c(8, "plain", "black"),
-#       font.y = c(8, "plain", "white")
-#     )
-# )
 
 
 
 ```
 
+
+### From diagnosis (whole cohort)
+
+Below we show two methods of estimating overall survival in this cohort:
+
+- **Transformation model** - Using the methods of Chiou, 2019 (https://doi.org/10.1177/09622802188175), this accounts for the correlation between sequencing and death times.  Specifically, we assume there is a transformation which will convert sequencing time and death time into a quasi-independent relationship.  The data are transformed in an attempt to minimize the correlation, and displayed with the parameters that achieve that transformation.
+- **Risk set adjustment** - Participants enter the risk set at the time of sequencing.  This model assumes sequencing and death times are independent.  While we believe this assumption is false in our cohort, it is a useful comparator as this is by far the most common method applied to truncated data.
+
+Due to the substantial correlation detected between sequencing and death times, we would expect the risk set adjustment to give incorrect estimates of survival.
 
 ```{r, include = T, fig.width = 7, fig.height = 5}
 gg_os
@@ -269,8 +258,190 @@ gg_os
 
 
 
+```{r}
+
+dft_surv_adv <- dft_surv %>%
+  filter(stage_dx_iv %in% "Stage IV" | 
+           dmets_stage_i_iii %in% 1) %>%
+  mutate(
+    tt_dmet_dx = if_else(
+      stage_dx_iv %in% "Stage IV",
+      0,
+      dx_to_dmets_yrs),
+    tt_os_dmet_yrs = tt_os_dx_yrs - tt_dmet_dx,
+    dmet_cpt_rep_yrs = dx_cpt_rep_yrs - tt_dmet_dx,
+    # This doesn't need to be done - the survival code fits the same way with or without. 
+    # However, it does make me feel better.
+    dmet_cpt_rep_yrs = if_else(
+      dmet_cpt_rep_yrs < 0, 0, dmet_cpt_rep_yrs
+    )
+    # tt_pfs_i_and_m_adv_yrs is already from dmets.
+  )
+
+
+surv_obj_os_adv <- with(
+  dft_surv_adv,
+  Surv(
+    time = dmet_cpt_rep_yrs,
+    time2 = tt_os_dmet_yrs,
+    event = os_dx_status)
+)
+survfit(surv_obj_os_adv ~ 1)
+
+
+surv_obj_os_adv_tm <- with(
+  dft_surv_adv,
+  trSurvfit(
+    trun = dmet_cpt_rep_yrs,
+    obs = tt_os_dmet_yrs,
+    delta = os_dx_status,
+    tFun = 'linear' # default
+  )
+)
+
+surv_obj_os_adv_tm # interesting for what they output.
+
+# The following indicates that there is a fit benefit
+#   for adding breaks.  However, I'm not clear on how to 
+#   fit the model separately and get survival curves out.
+# gof_tm_os <- gof(surv_obj_os) 
+
+dft_surv_os_adv_tm <- surv_obj_os_adv_tm$surv %>% 
+  as_tibble %>%
+  rename_all(tolower)
+
+# Amazing:  confirmed below that this wildly different KM
+# fit is risk set adjusted - not the standard KM curve
+# assuming no truncation.
+```
+
+```{r}
+gg_os_adv <- survfit2(surv_obj_os_adv ~ 1, data = dft_surv) %>%
+  ggsurvfit(color = surv_pal[2]) +
+  geom_step(data = dft_surv_os_adv_tm, 
+            inherit.aes = F,
+            aes(x = time, y = trsurv),
+            color = surv_pal[1]) + 
+  add_risktable(
+    risktable_stats = c(
+      "n.risk",
+      "cum.censor",
+      "cum.event"
+    )
+  ) +
+  # too many:
+  # add_censor_mark(alpha = 0.1,
+  #                 shape = 4,
+  #                 size = 2,
+  #                 color = surv_pal[3]) +
+  # add_quantile(y_value = 0.5,
+  #              linetype = 1,
+  #              alpha = 0.5,
+  #              size = 1,
+  #              color = surv_pal[2]) + 
+  # these two scale calls are a manual version 
+  #   of scale_ggsurvfit()
+  # Except that we moved the limits to coord_cartesian
+  # to avoid clipping.
+  scale_y_continuous(
+    expand = c(0,0), 
+    label = scales::label_percent()
+  ) + 
+  scale_x_continuous(
+    name = "Years from cancer diagnosis",
+    expand = c(0.025,0),
+    breaks = seq(0, 100, by = 2.5)
+  ) + 
+  coord_cartesian(
+    xlim = c(0, NA),
+    ylim = c(0,1)
+  ) + 
+  labs(
+    title = "Overall survival (from dmet)",
+    subtitle = vec_surv_subtitle
+  ) + 
+  theme(
+    axis.title.y = element_blank(),
+    plot.subtitle = element_markdown()
+  )
+```
+
+### From dmet (advanced disease)
+
+The following plot uses the time of advanced disease diagnosis as the index time.  That is, the diagnosis date for Stage IV participants and the noted time of first distant metastasis for everyone else.  This is conditional on survival up to the development of advanced disease.
+
+```{r, include = T, fig.width = 7, fig.height = 5}
+gg_os_adv
+```
+
+The transformation and risk set adjusted models are similar here because the estimated correlation (Kendall $\tau$) is much weaker in this conditional cohort.  This mirrors the findings of Kehl et. al. (doi: 10.1001/jamanetworkopen.2020.6976), where those with Stage IV disease had little-to-no association between time of sequencing and time of death.
+
+
+```{r}
+
+dft_surv_adv <- dft_surv %>%
+  filter(stage_dx_iv %in% "Stage IV" | 
+           dmets_stage_i_iii %in% 1) %>%
+  mutate(
+    tt_dmet_dx = if_else(
+      stage_dx_iv %in% "Stage IV",
+      0,
+      dx_to_dmets_yrs),
+    tt_os_dmet_yrs = tt_os_dx_yrs - tt_dmet_dx,
+    dmet_cpt_rep_yrs = dx_cpt_rep_yrs - tt_dmet_dx,
+    dmet_cpt_rep_yrs = if_else(
+      dmet_cpt_rep_yrs < 0, 0, dmet_cpt_rep_yrs
+    )
+    # tt_pfs_i_and_m_adv_yrs is already from dmets.
+  )
+
+
+surv_obj_os_adv <- with(
+  dft_surv_adv,
+  Surv(
+    time = dmet_cpt_rep_yrs,
+    time2 = tt_os_dmet_yrs,
+    event = os_dx_status)
+)
+survfit(surv_obj_os_adv ~ 1)
+
+
+surv_obj_os_adv_tm <- with(
+  dft_surv_adv,
+  trSurvfit(
+    trun = dmet_cpt_rep_yrs,
+    obs = tt_os_dmet_yrs,
+    delta = os_dx_status,
+    tFun = 'linear' # default
+  )
+)
+
+surv_obj_os_adv_tm # interesting for what they output.
+
+# The following indicates that there is a fit benefit
+#   for adding breaks.  However, I'm not clear on how to 
+#   fit the model separately and get survival curves out.
+# gof_tm_os <- gof(surv_obj_os) 
+
+dft_surv_os_adv_tm <- surv_obj_os_adv_tm$surv %>% 
+  as_tibble %>%
+  rename_all(tolower)
+```
+
+
+
+
+
+
 
 ## Bivariate time distribution plots
+
+Conceptual work to help with modeling.  The variables here are:
+
+- `tt_pfs_i_and_m_adv_yrs` - progression free survival, only calculated for participants with advanced disease in our data.
+- `tt_os_dx_yrs` - overall survival.
+- `dx_cpt_rep_yrs` - time of first sequencing report for the participant.
+
 
 ```{r, include = T}
 ggplot(dft_surv,
