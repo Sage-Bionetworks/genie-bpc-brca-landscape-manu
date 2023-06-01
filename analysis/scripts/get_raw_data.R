@@ -22,10 +22,41 @@ dir.create(here("data"), showWarnings = F)
 # Rdata version:
 data_list <- genieBPC::pull_data_synapse(cohort = "BrCa",
                                          version = "v1.2-consortium")
-# CSV versions just in case:
+# Save the Rdata version:
+readr::write_rds(x = data_list,
+                 file = here('data-raw', 'data_list.rds'))
+
+
+# CSV versions.
+# These may not match the processing done by MSK exactly (for example I think
+#   they filter down to index cancer regimens only).
+synid_clin_data <- 'syn39802381'
+synid_gen_data <- 'syn32299078'
+vec_gen_files <- c('data_CNA.txt', 
+                   'data_fusions.txt', 
+                   'data_mutations_extended.txt')
+dft_dat_list <- synGetChildren(synid_clin_data) %>%
+  as.list %>%
+  purrr::map_dfr(.x = .,
+                 .f = as_tibble)
+dft_gen_list <- synGetChildren(synid_gen_data) %>%
+  as.list %>%
+  purrr::map_dfr(.x = .,
+                 .f = as_tibble) %>%
+  filter(name %in% vec_gen_files)
+if (any(stringr::str_detect(df_clin_children$name, ".csv^"))) {
+  warning("Non-CSV files unexpectedly contained in {synid_clin_data}.")
+}
+syn_store_in_dataraw <- function(sid) {
+  synGet(entity = sid, downloadLocation = here("data-raw"))
+}
+purrr::walk(.x = df_clin_children$id, 
+            .f = syn_store_in_dataraw)
+
 genieBPC::pull_data_synapse(cohort = "BrCa",
                             version = "v1.2-consortium",
                             download_location = "data-raw")
+
 # Move the CSV versions out of the subfolder:
 purrr::walk(
   .x = here('data-raw', 'BrCa_v1.2', 
@@ -35,9 +66,6 @@ purrr::walk(
 )
 fs::dir_delete(here('data-raw', 'BrCa_v1.2'))
 
-# Save the Rdata version:
-readr::write_rds(x = data_list,
-                 file = here('data-raw', 'data_list.rds'))
 
 
 # Update: Also want to pull a sheet shared by Brooke M. @ MSK:
