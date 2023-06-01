@@ -34,7 +34,8 @@ synid_clin_data <- 'syn39802381'
 synid_gen_data <- 'syn32299078'
 vec_gen_files <- c('data_CNA.txt', 
                    'data_fusions.txt', 
-                   'data_mutations_extended.txt')
+                   'data_mutations_extended.txt',
+                   'data_gene_matrix.txt')
 dft_dat_list <- synGetChildren(synid_clin_data) %>%
   as.list %>%
   purrr::map_dfr(.x = .,
@@ -44,27 +45,19 @@ dft_gen_list <- synGetChildren(synid_gen_data) %>%
   purrr::map_dfr(.x = .,
                  .f = as_tibble) %>%
   filter(name %in% vec_gen_files)
-if (any(stringr::str_detect(df_clin_children$name, ".csv^"))) {
-  warning("Non-CSV files unexpectedly contained in {synid_clin_data}.")
-}
+dft_dat_list <- bind_rows(dft_dat_list, dft_gen_list)
+
 syn_store_in_dataraw <- function(sid) {
-  synGet(entity = sid, downloadLocation = here("data-raw"))
+  synGet(
+    entity = sid, 
+    downloadLocation = here("data-raw"),
+    ifcollision = 'overwrite.local' # replaces local copy if it exists.
+  )
 }
-purrr::walk(.x = df_clin_children$id, 
+purrr::walk(.x = dft_dat_list$id, 
             .f = syn_store_in_dataraw)
 
-genieBPC::pull_data_synapse(cohort = "BrCa",
-                            version = "v1.2-consortium",
-                            download_location = "data-raw")
 
-# Move the CSV versions out of the subfolder:
-purrr::walk(
-  .x = here('data-raw', 'BrCa_v1.2', 
-     dir(here('data-raw', 'BrCa_v1.2'))),
-  .f = file_move,
-  new_path = here('data-raw')
-)
-fs::dir_delete(here('data-raw', 'BrCa_v1.2'))
 
 
 
