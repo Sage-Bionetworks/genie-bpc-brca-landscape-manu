@@ -15,6 +15,9 @@ library(genieBPC)
 library(fs)
 library(purrr)
 library(here)
+library(tibble)
+library(stringr)
+library(dplyr)
 
 dir.create(here("data-raw"), showWarnings = F)
 dir.create(here("data"), showWarnings = F)
@@ -30,12 +33,17 @@ readr::write_rds(x = data_list,
 # CSV versions.
 # These may not match the processing done by MSK exactly (for example I think
 #   they filter down to index cancer regimens only).
+synLogin()
 synid_clin_data <- 'syn39802381'
 synid_gen_data <- 'syn32299078'
-vec_gen_files <- c('data_CNA.txt', 
-                   'data_fusions.txt', 
-                   'data_mutations_extended.txt',
-                   'data_gene_matrix.txt')
+vec_gen_files <- c(
+  'data_CNA.txt', 
+  'data_fusions.txt', 
+  'data_mutations_extended.txt',
+  'data_gene_matrix.txt'
+  #'data_gene_panel_DFCI-ONCOPANEL-1.txt'
+  # Also includes all gene panels using the logic below.
+)
 dft_dat_list <- synGetChildren(synid_clin_data) %>%
   as.list %>%
   purrr::map_dfr(.x = .,
@@ -44,7 +52,7 @@ dft_gen_list <- synGetChildren(synid_gen_data) %>%
   as.list %>%
   purrr::map_dfr(.x = .,
                  .f = as_tibble) %>%
-  filter(name %in% vec_gen_files)
+  filter(name %in% vec_gen_files | str_detect(name, "^data_gene_panel_.*"))
 dft_dat_list <- bind_rows(dft_dat_list, dft_gen_list)
 
 syn_store_in_dataraw <- function(sid) {

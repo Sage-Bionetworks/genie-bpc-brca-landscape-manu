@@ -32,6 +32,10 @@ dft_gp_test <- read_yaml(
 )
 
 
+tidy_gene_panel(
+  here('data-raw', 'data_gene_panel_DFCI-ONCOPANEL-1.txt')
+)
+
 
 
 
@@ -44,10 +48,12 @@ dft_dmet_timing <- get_dmet_timing(ca_ind_df = dft_ca_ind)
 
 # Example:  Get all NGS which occur prior to metastatic cancer, or any which are
 #   the first NGS test.
-get_cpt_by_time(
+dft_cpt_dmet <- get_cpt_by_time(
   time_dat = dft_dmet_timing,
   time_var = "tt_y",
   cpt_dat = dft_cpt,
   always_keep_first = T
 )
 
+dft_cpt_dmet %>% glimpse
+dft_cpt_dmet %>% tabyl(cpt_seq_assay_id)
