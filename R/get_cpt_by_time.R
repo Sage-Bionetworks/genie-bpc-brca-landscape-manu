@@ -40,6 +40,8 @@ get_cpt_by_time <- function(
     ) %>%
     ungroup(.) 
   
+  rtn_dat %<>% select(-all_of(time_var))
+  
   if (always_keep_first) {
     rtn_dat %<>% filter(is_first_cpt | cpt_before_t)
   } else {
