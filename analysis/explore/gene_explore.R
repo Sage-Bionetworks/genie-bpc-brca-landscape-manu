@@ -9,7 +9,9 @@ library(ggplot2)
 
 purrr::walk(.x = fs::dir_ls('R'), .f = source)
 
-dft_cpt <- readr::read_csv(here('data-raw', 'cancer_panel_test_level_dataset.csv'))
+dft_cpt <- readr::read_rds(
+  here('data', 'clin_data_cohort', 'dft_cpt.rds')
+)
 glimpse(dft_cpt)
 
 dft_cna <- readr::read_tsv(here('data-raw', 'data_CNA.txt'))
@@ -23,7 +25,7 @@ dft_mut$Variant_Classification %>% unique
 dft_mut$Polyphen_Prediction %>% unique 
 dft_mut$SIFT_Prediction %>% unique 
 # Polyphen Score doesn't seem useful in addition due to...
-ggplot(dft_mut, aes(x = Polyphen_Prediction, y = Polyphen_Score)) + geom_jitter()
+# gplot(dft_mut, aes(x = Polyphen_Prediction, y = Polyphen_Score)) + geom_jitter()
 
 
 dft_mut %>% lapply(X = ., FUN = (function(x) mean(is.na(x))))
