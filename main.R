@@ -10,3 +10,8 @@ purrr::walk(.x = fs::dir_ls('R'), .f = source)
 
 source(here('analysis', 'scripts', 'get_raw_data.R'))
 source(here('analysis', 'scripts', 'filter_data_for_cohort.R'))
+source(here('analysis', 'scripts', 'merge_gene_panels.R'))
+
+# Lots of stuff here...
+
+# source(here('analysis', 'scripts', 'upload_outputs_synapse.R'))

@@ -4,6 +4,8 @@ library(fs)
 library(tibble)
 library(dplyr)
 library(yaml)
+library(magrittr)
+library(tidyr)
 
 purrr::walk(fs::dir_ls('R'), .f = source)
 
@@ -46,27 +48,80 @@ dft_mut %<>%
 
 dft_mut <- left_join(
   dft_mut,
-  select(dft_cpt, record_id, ca_seq, cpt_genie_sample_id, cpt_seq_assay_id),
+  select(dft_cpt, cpt_genie_sample_id, cpt_seq_assay_id),
   by = c(Tumor_Sample_Barcode = "cpt_genie_sample_id"),
   multiple = "error" # We expect one row per cpt_genie_sample_id.
 )
 
 dft_mut_long <- dft_mut %>%
   select(
-    record_id, 
-    ca_seq, 
     cpt_genie_sample_id = Tumor_Sample_Barcode, 
     hugo = Hugo_Symbol,
     cpt_seq_assay_id,
+  ) 
+
+# # Just curious.  This should give the number of deleterious mutations per sample.
+# dft_mut_long %>% count(cpt_genie_sample_id, sort = T)
+# # Are there samples with more than one associated panel?
+# dft_mut_long %>%
+#   group_by(cpt_genie_sample_id) %>%
+#   summarize(num_panels = length(unique(cpt_seq_assay_id))) %>%
+#   arrange(desc(num_panels))
+# # No.
+# # How many rows can we expect to be added per oncopanel?
+# gp_all %>% count(stable_id)
+# # About 400, so for 1000 tests we'd expect about 400k rows for our upcoming merge.
+
+# First create a skeleton with one row per {panel_id, gene tested}.
+dft_gene_feat <- dft_mut_long %>%
+  select(cpt_genie_sample_id, cpt_seq_assay_id) %>%
+  distinct(.) %>%
+  left_join(
+    .,
+    gp_all,
+    by = c(cpt_seq_assay_id = "stable_id"),
+    multiple = "all", # we expect many matches for each cpt.
+    unmatched = "error" # one offs could be excluded, but we expect all to have 
+    # a matching panel.
   )
 
-# Just curious.  This should give the number of deleterious mutations per sample.
-dft_mut_long %>% count(cpt_genie_sample_id, sort = T)
+# bring in the positive tests.
+dft_gene_feat <- dft_mut_long %>%
+  select(cpt_genie_sample_id, hugo) %>%
+  distinct(.) %>% # if multiple deleterious variants exist we compress to one row.
+  mutate(variant = T) %>%
+  left_join(
+    dft_gene_feat,
+    .,
+    by = c("cpt_genie_sample_id", "hugo"),
+    multiple = "error"
+  )
 
+dft_gene_feat <- dft_gene_feat %>%
+  mutate(variant = if_else(is.na(variant), F, variant))
 
-dft_mut %>% glimpse
+# # At this point we have a list of all genes tested.  variant = 0 means no
+# # deleterious variants were found, variant = 1 means some were found.
+# # Some genes are in more panels than others:
+# dft_gene_feat %>% count(hugo) %>% arrange(desc(n))
+# # We now want to populate this to include all genes tested over all panels,
+# # which can be easily reversed by an analyst later if desired.
 
-# 
-# dft_ca_ind <- readr::read_rds(
-#   here('data', 'clin_data_cohort', 'dft_ca_ind.rds')
-# )
+# As expected this has 400k rows now.  With >900 unique hugo, we would expect
+# about 900k rows when this completion is done.
+dft_gene_feat <- dft_gene_feat %>%
+  complete(
+    ., cpt_genie_sample_id, hugo,
+    fill = list(tested = F, variant = NA, cpt_seq_assay_id = NA)
+  )
+                
+# # Now we're able to get much more meaningful statistics about the genes.
+# # For example, how many genes are tested in >70% of samples?
+# dft_gene_feat %>% 
+#   group_by(hugo) %>%
+#   summarize(prop = mean(tested %in% T)) %>% 
+#   mutate(prop_gte_70 = prop >= 0.7) %>%
+#   summarize(genes_frequent = sum(prop_gte_70, na.rm = T))
+# # A great minority.
+
+readr::write_rds(dft_gene_feat, file = here('data', 'gene_feat_long.rds'))
