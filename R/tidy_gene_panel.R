@@ -5,7 +5,7 @@ tidy_gene_panel <- function(path) {
                                      pattern = "\\t")
   rtn <- tibble(
     stable_id = raw$stable_id,
-    gene = vec_genes,
+    hugo = vec_genes,
     tested = T
   )
   
