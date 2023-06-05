@@ -29,13 +29,21 @@ vec_not_sarcoma <- dft_ca_ind %>%
   filter(!(ca_hist_adeno_squamous %in% "Sarcoma")) %>%
   pull(record_id)
 
-# Some of these datasets can be filtered by this vector:
+# For datasets keyed by record_id (within cohort), we can filter by that vector:
 dft_pt %<>% filter(record_id %in% vec_not_sarcoma)
-dft_ca_ind %<>% filter(record_id %in% vec_not_sarcoma)
 dft_img %<>% filter(record_id %in% vec_not_sarcoma)
 dft_med_onc %<>% filter(record_id %in% vec_not_sarcoma)
 dft_path %<>% filter(record_id %in% vec_not_sarcoma)
 dft_tm %<>% filter(record_id %in% vec_not_sarcoma)
+
+# Cancer diagnosis dataset will be used as the keyset for the {record_id, ca_seq}
+# datasets.
+dft_ca_ind %<>% filter(record_id %in% vec_not_sarcoma) %>%
+  # Grab only the first index cancer if there are two.
+  group_by(record_id) %>%
+  arrange(ca_cadx_int) %>% 
+  slice(1) %>%
+  ungroup(.)
 
 dft_cohort_keys <- dft_ca_ind %>% select(record_id, ca_seq)
 chk_keys_unique <- count(dft_cohort_keys, record_id, ca_seq) %>%

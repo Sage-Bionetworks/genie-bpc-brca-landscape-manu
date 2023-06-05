@@ -28,8 +28,8 @@ cli::cli_alert_danger(
   "Mutation data processing was a guess to get the statistical steps set up.  
   Needs to be verified by someone with expertise!"
 )
-dft_cpt <- dft_cpt <- readr::read_csv(
-  here('data-raw', 'cancer_panel_test_level_dataset.csv')
+dft_cpt <- readr::read_rds(
+  here('data', 'clin_data_cohort', 'dft_cpt.rds')
 )
 dft_mut <- readr::read_tsv(here('data-raw', 'data_mutations_extended.txt'))
 
@@ -43,12 +43,30 @@ dft_mut %<>%
 
 # The tumor sample barcodes seem to match up nicely with this column:
 # dft_mut$Tumor_Sample_Barcode %in% dft_cpt$cpt_genie_sample_id %>% mean
-dft_mut$Tumor_Sample_Barcode
 
-left_join(
+dft_mut <- left_join(
   dft_mut,
-  select(dft_cpt, record_id, ca_seq, cpt_genie_sample_id),
-  by = c(Tumor_Sample_Barcode = "cpt_genie_sample_id")
+  select(dft_cpt, record_id, ca_seq, cpt_genie_sample_id, cpt_seq_assay_id),
+  by = c(Tumor_Sample_Barcode = "cpt_genie_sample_id"),
+  multiple = "error" # We expect one row per cpt_genie_sample_id.
 )
 
-dft_cpt %>% filter(cpt_genie_sample_id %in% "GENIE-DFCI-093042-332548")
+dft_mut_long <- dft_mut %>%
+  select(
+    record_id, 
+    ca_seq, 
+    cpt_genie_sample_id = Tumor_Sample_Barcode, 
+    hugo = Hugo_Symbol,
+    cpt_seq_assay_id,
+  )
+
+# Just curious.  This should give the number of deleterious mutations per sample.
+dft_mut_long %>% count(cpt_genie_sample_id, sort = T)
+
+
+dft_mut %>% glimpse
+
+# 
+# dft_ca_ind <- readr::read_rds(
+#   here('data', 'clin_data_cohort', 'dft_ca_ind.rds')
+# )
