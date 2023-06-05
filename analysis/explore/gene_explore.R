@@ -21,8 +21,14 @@ dft_mut %>% glimpse
 dft_mut$Consequence %>% unique
 dft_mut$Variant_Classification %>% unique
 dft_mut$Polyphen_Prediction %>% unique 
+dft_mut$SIFT_Prediction %>% unique 
 # Polyphen Score doesn't seem useful in addition due to...
 ggplot(dft_mut, aes(x = Polyphen_Prediction, y = Polyphen_Score)) + geom_jitter()
+
+
+dft_mut %>% lapply(X = ., FUN = (function(x) mean(is.na(x))))
+# Notes on missingness:  Consequence is more complete than polyphen score.
+
 dft_mut %>% tabyl(Hugo_Symbol) %>% arrange(desc(n)) %>% head(10)
 # Probably start here.
 dft_mut %>% glimpse
