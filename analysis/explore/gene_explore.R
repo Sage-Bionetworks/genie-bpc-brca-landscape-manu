@@ -68,6 +68,10 @@ dft_gene_feat_dmet %<>%
   ungroup(.) %>%
   filter(hugo_prop_tested > 0.7)
 
+cli::cli_alert_danger(
+  text = "Filtering probably needs to be moved to post-merge."
+)
+
 # Also require that there is some variance in the gene test results.
 dft_gene_feat_dmet %<>%   
   group_by(hugo) %>%
@@ -108,8 +112,6 @@ dft_gene_feat_dmet <- left_join(
 dft_gene_feat_dmet %<>%
   filter(is_first_cpt) 
 # Problem solved - verify with most recent count command.
-
-cli::cli_alert_danger(text = "Need to do imputation still!!!!")
 
 
 
@@ -152,6 +154,11 @@ dft_dmet_surv <- left_join(
 dft_dmet_surv %<>%
   filter(!(dx_cpt_rep_yrs > tt_os_dx_yrs))
 
+
+
+
+
+
 y_dmet <- with(
   dft_dmet_surv,
   Surv(
@@ -161,9 +168,26 @@ y_dmet <- with(
   )
 )
 
-x_dmet %>% 
+x_dmet <- dft_dmet_surv %>% 
   select(
-  
+    ABL1:WT1,
+    age_dx,
+    stage_dx_iv,
+    white,
+    hispanic
+  )
 
+
+cli::cli_alert_danger(text = "Need to do imputation still!!!!")
+
+
+
+cv.glmnet(
+  x = x_dmet,
+  y = y_dmet,
+  standardize = T,
+  alpha = 1,
+  family = "cox"
+)
 
     
