@@ -6,6 +6,7 @@ library(dplyr)
 library(yaml)
 library(magrittr)
 library(tidyr)
+library(caret)
 
 purrr::walk(fs::dir_ls('R'), .f = source)
 
@@ -124,4 +125,89 @@ dft_gene_feat <- dft_gene_feat %>%
 #   summarize(genes_frequent = sum(prop_gte_70, na.rm = T))
 # # A great minority.
 
+# Because many of the upcoming methods require matrices,
+dft_gene_feat %<>%
+  mutate(
+    tested = as.numeric(tested),
+    variant = as.numeric(variant)
+  ) %>%
+  mutate(hugo = stringr::str_replace_all(hugo, "-", "_")) 
+
+# Filter out genes with zero variance or no prevalence:
+dft_gene_feat %<>%
+  group_by(hugo) %>%
+  mutate(
+    hugo_var = var(variant, na.rm = T),
+    any_pos = any(variant %in% 1)
+  ) %>%
+  ungroup(.) %>%
+  filter(hugo_var > 0) %>%
+  filter(any_pos) %>%
+  select(-hugo_var, -any_pos)
+
+
 readr::write_rds(dft_gene_feat, file = here('data', 'gene_feat_long.rds'))
+
+# Imputation is needed for LASSO modeling - we do this now.
+dft_genes_over_thresh <- dft_gene_feat %>%
+  group_by(hugo) %>%
+  mutate(
+    hugo_prop_test = mean(tested %in% T),
+    hugo_var = var(variant, na.rm = T)
+  ) %>%
+  ungroup(.) %>%
+  filter(hugo_var > 0) %>%
+  select(cpt_genie_sample_id, hugo, variant)
+
+dft_genes_over_thresh_wide <- dft_genes_over_thresh  %>%
+  pivot_wider(names_from = hugo, values_from = variant)
+
+dft_wide_no_names <- select(dft_genes_over_thresh_wide,
+                                     -cpt_genie_sample_id)
+  
+cli::cli_inform("Imputation takes some time (a few minutes on a 2021 macbook)")
+# From caret package:
+pc <- preProcess(
+  dft_wide_no_names, 
+  # as a start.  Effectively this adds 0 for all.
+  # The bagImpute method doesn't really work - returns NANs.
+  method = "medianImpute",
+)
+dft_imp <- predict(pc, dft_wide_no_names) 
+# put the IDs back in:
+dft_imp <- bind_cols(
+  select(dft_genes_over_thresh_wide, cpt_genie_sample_id),
+  dft_imp,
+)
+
+dft_imp <- dft_imp %>%
+  pivot_longer(
+    cols = -cpt_genie_sample_id,
+    names_to = "hugo",
+    values_to = "variant_imp"
+  )
+
+dft_gene_feat_imp <- left_join(
+  dft_gene_feat,
+  dft_imp,
+  by = c("cpt_genie_sample_id", "hugo")
+)
+
+dft_gene_feat_imp %>% lapply(., (function(x) mean(is.na(x))))
+
+# dft_gene_feat_imp %>% 
+#   filter(variant %in% NA) %>%
+#   pull(variant_imp) %>%
+#   mean
+
+readr::write_rds(dft_gene_feat_imp, file = here('data', 'gene_feat_long_imp.rds'))
+
+  
+
+
+
+
+ 
+
+
+
