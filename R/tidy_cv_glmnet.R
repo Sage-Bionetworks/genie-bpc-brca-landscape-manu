@@ -1,0 +1,25 @@
+tidy_cv_glmnet <- function(cv_coef, exp_coef = T, remove_zero = T) {
+  rtn <- cv_coef %>%
+    as.matrix(.) %>% 
+    as_tibble(., rownames = "feature") %>%
+    rename(value = `1`)
+  
+  
+  if (remove_zero) {
+    rtn <- rtn %>%
+      filter(abs(value) > 0)
+  }
+  
+  if (exp_coef) {
+    rtn <- rtn %>%
+      mutate(value = exp(value)) %>%
+      rename(hr = value)
+  } else {
+    rtn <- rtn %>%
+      mutate(value = exp(value)) %>%
+      rename(log_hr = value)
+  }
+  
+  return(rtn)
+  
+}
