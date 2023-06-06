@@ -195,21 +195,21 @@ x_dmet <- dft_dmet_surv %>%
   select(
     PTEN_mut:WT1_cna,
     age_dx,
-    stage_dx_iv,
+    stage_dx_iv_num,
     white,
     hispanic
-  )
+  ) %>%
+  as.matrix(.)
 
-
-
-
-
-cv.glmnet(
+cvfit <- cv.glmnet(
   x = x_dmet,
   y = y_dmet,
   standardize = T,
-  alpha = 1,
+  alpha = 0.99,
   family = "cox"
 )
 
+coef(cv
+
+plot(cvfit)
     
