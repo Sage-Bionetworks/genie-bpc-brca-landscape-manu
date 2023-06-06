@@ -104,11 +104,14 @@ dft_gene_feat_dmet <- dft_gene_feat %>%
 # Require that there is some variance in the gene test results.
 dft_gene_feat_dmet %<>%   
   group_by(feature) %>%
-  mutate(f_var = var(value, na.rm = T)) %>%
+  mutate(
+    f_var = var(value, na.rm = T),
+    n_pos = sum(value %in% 1)
+  ) %>%
   ungroup(.) %>%
-  filter(f_var > 0)
+  filter(f_var > 0 & n_pos >= 3)
 
-dft_gene_feat_dmet %<>% select(-f_var)
+dft_gene_feat_dmet %<>% select(-c(f_var, n_pos))
 
 # Back to wide:
 dft_gene_feat_dmet %<>%
@@ -159,11 +162,25 @@ dft_bl <- dft_ca_ind %>%
     record_id, 
     ca_seq, # works because we've already selected one row per person.
     age_dx, 
-    stage_dx_iv, 
+    stage_dx_iv,
+    dmets_stage_i_iii,
+    dx_to_dmets_yrs,
     os_dx_status, 
-    tt_os_dx_yrs
+    tt_os_dx_yrs,
+    pfs_i_and_m_adv_status,
+    tt_pfs_i_and_m_adv_yrs
   ) %>%
   full_join(., dft_bl, by = "record_id") 
+
+dft_bl %<>% 
+  mutate(
+    dx_to_dmet_yrs = if_else(stage_dx_iv %in% "Stage IV", 0, dx_to_dmets_yrs),
+    tt_os_dmet_yrs = case_when(
+      is.na(dx_to_dmets_yrs) ~ NA_real_,
+      T ~ tt_os_dx_yrs - dx_to_dmets_yrs,
+    ),
+    # pfs is already relative to stage IV or dmet date.
+  ) 
 
 dft_dmet_surv <- left_join(
   dft_gene_feat_dmet,
@@ -172,28 +189,40 @@ dft_dmet_surv <- left_join(
   multiple = "error"
 )
 
+dft_dmet_surv <- dft_dmet_surv %>%
+  mutate(
+    tt_cpt_dmet_yrs = case_when(
+      is.na(dx_to_dmets_yrs) ~ NA_real_,
+      T ~ dx_cpt_rep_yrs - dx_to_dmets_yrs,
+    ),
+    # glmnet won't take negative times:
+    tt_cpt_dmet_yrs_pos = if_else(tt_cpt_dmet_yrs < 0, 0, tt_cpt_dmet_yrs)
+  )
+
 # Limitation of the method:
 dft_dmet_surv %<>%
-  filter(!(dx_cpt_rep_yrs > tt_os_dx_yrs))
+  filter(!(tt_cpt_dmet_yrs > tt_os_dmet_yrs))
+  
 
 
 
 
 
 
-y_dmet <- with(
+y_dmet_os <- with(
   dft_dmet_surv,
   Surv(
-    time = dx_cpt_rep_yrs,
-    time2 = tt_os_dx_yrs,
+    time = tt_cpt_dmet_yrs,
+    time2 = tt_os_dmet_yrs,
     event = os_dx_status
   )
 )
 
-x_dmet <- dft_dmet_surv %>% 
+x_dmet_os <- dft_dmet_surv %>% 
   mutate(stage_dx_iv_num = if_else(stage_dx_iv %in% "Stage IV", 1, 0)) %>%
   select(
-    PTEN_mut:WT1_cna,
+    matches("_mut$"),
+    matches("_cna$"),
     age_dx,
     stage_dx_iv_num,
     white,
@@ -201,15 +230,35 @@ x_dmet <- dft_dmet_surv %>%
   ) %>%
   as.matrix(.)
 
-cvfit <- cv.glmnet(
-  x = x_dmet,
-  y = y_dmet,
+cvfit_dmet_os <- cv.glmnet(
+  x = x_dmet_os,
+  y = y_dmet_os,
   standardize = T,
-  alpha = 0.99,
-  family = "cox"
+  alpha = 0.97, # small bit of ridge for better convergence.
+  family = "cox",
+  nfolds = 10
 )
 
-coef(cv
-
+coef(cvfit, s = "lambda.min") %>% tidy_cv_glmnet(.)
 plot(cvfit)
+
+# Should you want to see the plot of all these coefs dying off:
+# glmnet(
+#   x = x_dmet_os,
+#   y = y_dmet_os,
+#   standardize = T,
+#   alpha = 0.97, # small bit of ridge for better convergence.
+#   family = "cox"
+# ) %>% plot
+
+
+# For PFS we need to create 
+
+
+
+
+
+
+
+
     
