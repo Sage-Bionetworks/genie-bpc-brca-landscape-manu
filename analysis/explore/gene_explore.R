@@ -24,13 +24,55 @@ dft_cpt <- readr::read_rds(
   here('data', 'clin_data_cohort', 'dft_cpt.rds')
 )
 
-dft_gp_all <- readr::read_rds(
-  here('data', 'gene_panel_all.rds')
-)
-dft_gene_feat <- readr::read_rds(
-  here('data', 'gene_feat_long.rds')
+# dft_gp_all <- readr::read_rds(
+#   here('data', 'gene_panel_all.rds')
+# )
+# dft_gene_feat <- readr::read_rds(
+#   here('data', 'gene_feat_long_imp.rds')
+# )
+
+dft_mut <- readr::read_rds(
+  here('data', 'msk_box_derived', 'mut_reshape.rds')
 )
 
+dft_cna <- readr::read_rds(
+  here('data', 'msk_box_derived', 'cna_reshape.rds')
+)
+
+rename_help <- function(x, suffix) {
+  # need to do this so some of the stat functions don't freak out:
+  x <- stringr::str_replace_all(x, "-", "_")
+  x <- paste0(x, suffix)
+  return(x)
+}
+
+# Give these names so we can tell the difference between CNA and mutation:
+dft_mut %<>% 
+  rename_at(
+    .vars = vars(-stable_id),
+    .funs = ~rename_help(., suffix = "_mut")
+  ) 
+     
+dft_cna %<>% 
+  rename_at(
+    .vars = vars(-stable_id),
+    .funs = ~rename_help(., suffix = "_cna")
+  )    
+
+dft_gene_feat <- full_join(dft_mut, dft_cna, by = "stable_id") %>%
+  rename(cpt_genie_sample_id = stable_id)
+
+# Go long to conform with previous code.
+dft_gene_feat %<>%
+  pivot_longer(
+    cols = -cpt_genie_sample_id,
+    names_to = "feature",
+    values_to = "value"
+  )
+    
+
+# dft_gene_feat %>% 
+#   lapply(., FUN = (function(x) mean(is.na(x))))
 
 
 
@@ -59,40 +101,20 @@ dft_cpt_dmet %<>%
 dft_gene_feat_dmet <- dft_gene_feat %>%
   filter(cpt_genie_sample_id %in% unique(dft_cpt_dmet$cpt_genie_sample_id))
 
-# The missingness and variance criteria build on McGough et. al. (2021), section
-#. 4 titled "real-world data application"
-# Further filter the genes down to those which were tested in at least 70% of panels.
-dft_gene_feat_dmet %<>%
-  group_by(hugo) %>%
-  mutate(hugo_prop_tested = mean(tested %in% T)) %>%
-  ungroup(.) %>%
-  filter(hugo_prop_tested > 0.7)
-
-cli::cli_alert_danger(
-  text = "Filtering probably needs to be moved to post-merge."
-)
-
-# Also require that there is some variance in the gene test results.
+# Require that there is some variance in the gene test results.
 dft_gene_feat_dmet %<>%   
-  group_by(hugo) %>%
-  mutate(hugo_var = var(variant, na.rm = T)) %>%
+  group_by(feature) %>%
+  mutate(f_var = var(value, na.rm = T)) %>%
   ungroup(.) %>%
-  filter(hugo_var > 0)
+  filter(f_var > 0)
 
-dft_gene_feat_dmet %<>% 
-  select(
-    -c(
-      tested, 
-      hugo_prop_tested, 
-      hugo_var,
-      cpt_seq_assay_id
-    )
-  ) 
+dft_gene_feat_dmet %<>% select(-f_var)
 
+# Back to wide:
 dft_gene_feat_dmet %<>%
   pivot_wider(
-    names_from = "hugo",
-    values_from = "variant",
+    names_from = "feature",
+    values_from = "value",
     values_fill = NA
   )
 # Should be all 1's:
@@ -106,7 +128,7 @@ dft_gene_feat_dmet <- left_join(
 )
 
 # Now we have to deal with people that have more than one test:
-# count(dft_gene_feat_dmet, record_id, ca_seq, sort = T)
+count(dft_gene_feat_dmet, record_id, ca_seq, sort = T)
 # OK, we have two people, so it doesn't seem too important here.  
 # Let's drop their second tests.
 dft_gene_feat_dmet %<>%
@@ -141,7 +163,7 @@ dft_bl <- dft_ca_ind %>%
     os_dx_status, 
     tt_os_dx_yrs
   ) %>%
-  full_join(., dft_dmet_bl, by = "record_id") 
+  full_join(., dft_bl, by = "record_id") 
 
 dft_dmet_surv <- left_join(
   dft_gene_feat_dmet,
@@ -169,8 +191,9 @@ y_dmet <- with(
 )
 
 x_dmet <- dft_dmet_surv %>% 
+  mutate(stage_dx_iv_num = if_else(stage_dx_iv %in% "Stage IV", 1, 0)) %>%
   select(
-    ABL1:WT1,
+    PTEN_mut:WT1_cna,
     age_dx,
     stage_dx_iv,
     white,
@@ -178,7 +201,6 @@ x_dmet <- dft_dmet_surv %>%
   )
 
 
-cli::cli_alert_danger(text = "Need to do imputation still!!!!")
 
 
 

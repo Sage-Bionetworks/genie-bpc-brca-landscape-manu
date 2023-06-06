@@ -5,6 +5,10 @@ library(purrr)
 library(here)
 library(fs)
 
+# Important!
+# Manually add the files in https://app.box.com/folder/200927784826 to
+# data/msk_box_derived (╭ರ_⊙)
+
 # Load all helper functions
 purrr::walk(.x = fs::dir_ls('R'), .f = source)
 
