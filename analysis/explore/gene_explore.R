@@ -154,7 +154,7 @@ dft_bl <- dft_pt %>%
       T ~ 1
     )
   ) %>%
-  select(record_id, white, hispanic)
+  select(record_id, white, hispanic, birth_year)
       
 
 dft_bl <- dft_ca_ind %>%
@@ -178,7 +178,7 @@ dft_bl %<>%
     tt_os_dmet_yrs = case_when(
       is.na(dx_to_dmets_yrs) ~ NA_real_,
       T ~ tt_os_dx_yrs - dx_to_dmets_yrs,
-    ),
+    )
     # pfs is already relative to stage IV or dmet date.
   ) 
 
@@ -196,7 +196,10 @@ dft_dmet_surv <- dft_dmet_surv %>%
       T ~ dx_cpt_rep_yrs - dx_to_dmets_yrs,
     ),
     # glmnet won't take negative times:
-    tt_cpt_dmet_yrs_pos = if_else(tt_cpt_dmet_yrs < 0, 0, tt_cpt_dmet_yrs)
+    tt_cpt_dmet_yrs_pos = if_else(tt_cpt_dmet_yrs < 0, 0, tt_cpt_dmet_yrs),
+    stage_dx_iv_num = if_else(stage_dx_iv %in% "Stage IV", 1, 0),
+    age_dx_c = age_dx - 40, # approximately centered.
+    birth_year_c = birth_year - 1970, # approximately centered.
   )
 
 # Limitation of the method:
@@ -212,19 +215,19 @@ dft_dmet_surv %<>%
 y_dmet_os <- with(
   dft_dmet_surv,
   Surv(
-    time = tt_cpt_dmet_yrs,
+    time = tt_cpt_dmet_yrs_pos,
     time2 = tt_os_dmet_yrs,
     event = os_dx_status
   )
 )
 
-x_dmet_os <- dft_dmet_surv %>% 
-  mutate(stage_dx_iv_num = if_else(stage_dx_iv %in% "Stage IV", 1, 0)) %>%
+x_dmet_os <- dft_dmet_surv %>%
   select(
     matches("_mut$"),
     matches("_cna$"),
-    age_dx,
+    age_dx_c,
     stage_dx_iv_num,
+    birth_year_c,
     white,
     hispanic
   ) %>%
@@ -239,7 +242,8 @@ cvfit_dmet_os <- cv.glmnet(
   nfolds = 10
 )
 
-coef(cvfit, s = "lambda.min") %>% tidy_cv_glmnet(.)
+dft_coef_dmet_os <- coef(cvfit_dmet_os, s = "lambda.min") %>% 
+  tidy_cv_glmnet(., exp_coef = T, remove_zero = T)
 plot(cvfit)
 
 # Should you want to see the plot of all these coefs dying off:
@@ -251,9 +255,40 @@ plot(cvfit)
 #   family = "cox"
 # ) %>% plot
 
+dft_coef_dmet_os_plot <- coef(cvfit_dmet_os, s = "lambda.min") %>% 
+  tidy_cv_glmnet(., exp_coef = T, remove_zero = F)
 
-# For PFS we need to create 
+gg_os_dmet_coef <- plot_coef_grid(dat = dft_coef_dmet_os_plot, 
+               plot_title = "Overall survival from distant metastasis")
 
+ggsave(
+  filename = here('output', 'fig', 'lasso_coef_os_dmet.pdf'),
+  plot = gg_os_dmet_coef,
+  width = 5, height = 5
+)
+
+
+gg_os_dmet_hr <- ggplot(mutate(dft_coef_dmet_os, feature = factor(feature)),
+       aes(x = hr, y = feature)) + 
+  geom_point() +
+  geom_vline(xintercept = 1, color = "#bb5566") + 
+  theme_bw() + 
+  scale_x_continuous(n.breaks = 8) + 
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    plot.title.position = 'plot'
+  ) + 
+  labs(x = "Hazard ratio",
+       title = "Overall Survival from distant metastasis",
+       subtitle = "Features not shown are all zero.",
+       y = NULL)
+
+ggsave(
+  filename = here('output', 'fig', 'lasso_hr_os_dmet.pdf'),
+  plot = gg_os_dmet_hr,
+  width = 6, height = 2 
+)
 
 
 
