@@ -85,3 +85,4 @@ renv/staging/
 # folders to ignore
 data
 data-raw
+output
