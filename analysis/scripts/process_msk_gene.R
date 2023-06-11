@@ -43,3 +43,26 @@ readr::write_rds(
   x = cna_msk,
   file = here('data', 'msk_box_derived', 'cna_reshape.rds')
 )
+
+
+# Annnnnd one more time for fusions:
+fus_msk <- read.table(
+  here(
+    "data",
+    "msk_box_derived",
+    "FUSION_ONCOKB_ANNOTATED_COMMON_158_GENES_ACROSS_ALL_PANELS.txt"
+  ),
+  row.names = 1,
+  check.names = F
+)
+
+fus_msk <- fus_msk %>% 
+  as.matrix(.) %>% 
+  t %>% 
+  as_tibble(rownames = "stable_id")
+
+readr::write_rds(
+  x = fus_msk,
+  file = here('data', 'msk_box_derived', 'fus_reshape.rds')
+)
+
