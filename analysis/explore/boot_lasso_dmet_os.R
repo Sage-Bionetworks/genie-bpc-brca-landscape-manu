@@ -114,7 +114,7 @@ dft_gene_feat_dmet %<>%
   ) %>%
   ungroup(.) %>%
   # 0.5% of dmet cases is about 3 people
-  filter(f_var > 0 & prop_pos > 0.005)
+  filter(f_var > 0 & prop_pos > 0.002)
 
 dft_gene_feat_dmet %<>% select(-c(f_var, prop_pos))
 
@@ -243,16 +243,6 @@ dft_dmet_surv %<>%
 
 
 
-
-y_dmet_os <- with(
-  dft_dmet_surv,
-  Surv(
-    time = tt_cpt_dmet_yrs_pos,
-    time2 = tt_os_dmet_yrs,
-    event = os_dx_status
-  )
-)
-
 x_dmet_os <- dft_dmet_surv %>%
   # just to get the output in readable order we do an alphabet sort first:
   select(order(colnames(dft_dmet_surv))) %>%
@@ -268,35 +258,8 @@ x_dmet_os <- dft_dmet_surv %>%
   ) %>%
   as.matrix(.)
 
-cvfit_dmet_os <- cv.glmnet(
-  x = x_dmet_os,
-  y = y_dmet_os,
-  standardize = T,
-  alpha = 0.97, # small bit of ridge for better convergence.
-  family = "cox",
-  nfolds = 5
-)
 
-dft_coef_dmet_os <- coef(cvfit_dmet_os, s = "lambda.min") %>% 
-  tidy_cv_glmnet(., exp_coef = T, remove_zero = T)
-plot(cvfit_dmet_os)
-
-
-
-
-
-# 
-# one_fit <- fit_boot_cv_ltrc_lasso(
-#   x_mat = x_dmet_os,
-#   y_df = dft_dmet_surv,
-#   y_t = "tt_cpt_dmet_yrs_pos",
-#   y_t2 = "tt_os_dmet_yrs",
-#   y_e = "os_dx_status",
-#   boot_seed = 198,
-#   cv_folds = 10
-# )
-
-n_boots <- 3
+n_boots <- 1000
 set.seed(389) # for drawing each boot seed below
 dft_boot_dmet_os <- tibble(boot_ind = 1:n_boots) %>%
   mutate(boot_seed = sample.int(n = 10^7, size = n()))
@@ -320,13 +283,22 @@ dft_boot_dmet_os <- dft_boot_dmet_os %>%
 
 readr::write_rds(
   x = dft_boot_dmet_os,
-  file = here('analysis', 'data', 'lasso_fits_dmet_os.rds')
+  file = here('analysis', 'explore', 'lasso_fits_dmet_os.rds')
 )
 
-dft_coef_dmet_os <- dft_boot_dmet_os %>%
+dft_boot_dmet_os <- dft_boot_dmet_os %>%
   mutate(
-    coef_mat = purrr::map(.x = fit, .f = get_cv_lasso_coefs)
-  ) %>%
+    coef_mat = purrr::map(
+      .x = fit, 
+      .f = get_cv_lasso_coefs
+    ),
+    n_features_select = purrr::map_dbl(
+      .x = coef_mat,
+      .f = (function(x) x %>% filter(abs(hr-1) > 0.01) %>% nrow)
+    ) 
+  )
+
+dft_coef_dmet_os <- dft_boot_dmet_os %>%
   select(-fit) %>%
   unnest(coef_mat)
 
@@ -340,76 +312,44 @@ dft_coef_dmet_os %<>%
 
 gg_coef_flat_dmet_os <- plot_coef_grid_flat(
   dft_coef_dmet_os,
-  plot_title = "Model features"
+  plot_title = "Model features - OS from dmet"
 )
 
 gg_coef_reliability_dmet_os <- plot_coef_grid_reliability(
   dft_coef_dmet_os,
+  plot_title = "Selected features - OS from dmet"
 )
 
 gg_hr_forest_dmet_os <- dft_coef_dmet_os %>%
   filter(reliability >= 0.5) %>%
-  mutate(feature = forcats::fct_drop(feature)) %>% 
-  plot_hr_forest(.,
-                 pt_color_col = "reliability")
+  mutate(
+    feature = forcats::fct_drop(feature),
+    feature = forcats::fct_rev(feature)) %>% 
+  plot_hr_forest(
+    .,
+    pt_color_col = "reliability",
+    pt_shape = 18,
+    plot_title = "Hazard ratios of frequently selected features"
+  )
+    
 
+ggsave(
+  filename = here('output', 'fig', 'features_dmet_os.pdf'),
+  plot = gg_coef_flat_dmet_os,
+  height = 4, width = 6
+)
 
-dft_coef_dmet_os <- coef(cvfit_dmet_os, s = "lambda.min") %>% 
-  tidy_cv_glmnet(., exp_coef = T, remove_zero = T)
-plot(cvfit_dmet_os)
+ggsave(
+  filename = here('output', 'fig', 'features_selected_dmet_os.pdf'),
+  plot = gg_coef_reliability_dmet_os,
+  height = 4, width = 6
+)
 
-# Should you want to see the plot of all these coefs dying off:
-# glmnet(
-#   x = x_dmet_os,
-#   y = y_dmet_os,
-#   standardize = T,
-#   alpha = 0.97, # small bit of ridge for better convergence.
-#   family = "cox"
-# ) %>% plot
-
-dft_coef_dmet_os_plot <- coef(cvfit_dmet_os, s = "lambda.min") %>% 
-  tidy_cv_glmnet(., exp_coef = T, remove_zero = F)
-
-gg_os_dmet_coef <- plot_coef_grid(dat = dft_coef_dmet_os_plot, 
-               plot_title = "Overall survival from distant metastasis")
-
-gg_os_dmet_coef
-
-
-# ggsave(
-#   filename = here('output', 'fig', 'lasso_coef_os_dmet.pdf'),
-#   plot = gg_os_dmet_coef,
-#   width = 5, height = 5
-# )
-
-
-gg_os_dmet_hr <- ggplot(mutate(dft_coef_dmet_os, feature = factor(feature)),
-       aes(x = hr, y = feature)) + 
-  geom_point() +
-  geom_vline(xintercept = 1, color = "#bb5566") + 
-  theme_bw() + 
-  scale_x_continuous(n.breaks = 8) + 
-  theme(
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor.x = element_blank(),
-    plot.title.position = 'plot'
-  ) + 
-  labs(x = "Hazard ratio",
-       title = "Overall Survival from distant metastasis",
-       subtitle = "Features not shown are all zero.",
-       y = NULL)
-
-gg_os_dmet_hr
-
-# ggsave(
-#   filename = here('output', 'fig', 'lasso_hr_os_dmet.pdf'),
-#   plot = gg_os_dmet_hr,
-#   width = 6, height = 3
-# )
-
-
-
-
+ggsave(
+  filename = here('output', 'fig', 'hr_forest_dmet_os.pdf'),
+  plot = gg_hr_forest_dmet_os,
+  height = 4, width = 6
+)
 
 
 
