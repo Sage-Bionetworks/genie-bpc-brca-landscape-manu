@@ -3,5 +3,6 @@
 get_cv_lasso_coefs <- function(las_fit, lambda_value = 'lambda.min') {
   las_fit %>%
     coef(., s = lambda_value) %>%
-    tidy_cv_glmnet(., exp_coef = T, remove_zero = F)
+    # Need the coefficients on log scale to average.
+    tidy_cv_glmnet(., exp_coef = F, remove_zero = F)
 }

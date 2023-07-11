@@ -16,7 +16,6 @@ tidy_cv_glmnet <- function(cv_coef, exp_coef = T, remove_zero = T) {
       rename(hr = value)
   } else {
     rtn <- rtn %>%
-      mutate(value = exp(value)) %>%
       rename(log_hr = value)
   }
   
