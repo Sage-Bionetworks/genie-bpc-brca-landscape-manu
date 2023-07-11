@@ -14,6 +14,14 @@ purrr::walk(.x = fs::dir_ls('R'), .f = source)
 
 source(here('analysis', 'script', 'get_raw_data.R'))
 source(here('analysis', 'script', 'filter_data_for_cohort.R'))
+source(here('analysis', 'script', 'process_data.R'))
+rmarkdown::render(
+  input = here('analysis', 'report', 'brca_regimens.Rmd'),
+  output_file = '01-bpc-brca-regimen-overview.html',
+  output_dir = here('output')
+)
+
+
 # No longer needed the following, using inputs from MSK bioinformatics team:
 # source(here('analysis', 'script', 'merge_gene_panels.R'))
 source(here('analysis', 'script', 'process_msk_gene.R'))

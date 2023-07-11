@@ -8,7 +8,11 @@ library(yaml)
 library(here)
 library(purrr)
 library(fs)
+
 library(ggplot2)
+library(ggtext)
+library(ggrepel)
+
 library(tidyr)
 library(stringr)
 library(survival)
@@ -258,28 +262,47 @@ x_dmet_os <- dft_dmet_surv %>%
   ) %>%
   as.matrix(.)
 
-
-n_boots <- 1000
+n_boots <- 300
 set.seed(389) # for drawing each boot seed below
 dft_boot_dmet_os <- tibble(boot_ind = 1:n_boots) %>%
   mutate(boot_seed = sample.int(n = 10^7, size = n()))
 
+# To force an error:
+# dft_boot_dmet_os[2, "boot_seed"] <- 5516804
+
+lasso_wrap_os <- function(bs) {
+  out <- tryCatch(
+    expr = {
+      fit_boot_cv_ltrc_lasso(
+      x_mat = x_dmet_os,
+      y_df = dft_dmet_surv,
+      y_t = "tt_cpt_dmet_yrs_pos",
+      y_t2 = "tt_os_dmet_yrs",
+      y_e = "os_dx_status",
+      boot_seed = bs,
+    )
+    },
+    error=function(cond) {
+      message(paste0("Encountered an error with boot seed: ", bs))
+      return(NA)
+    }
+  )
+  return(out)
+}
+
+# lasso_wrap_os(bs = 29380)
+# boot_seed 5516804 caused an error which reproduces.
+# lasso_wrap_os(bs = 5516804)
+
+cli::cli_alert_success(paste0("Starting bootstraps at ", Sys.time()))
 dft_boot_dmet_os <- dft_boot_dmet_os %>%
   mutate(
     fit = purrr::map(
       .x = boot_seed,
-      .f = (function(x) {
-        fit_boot_cv_ltrc_lasso(
-          x_mat = x_dmet_os,
-          y_df = dft_dmet_surv,
-          y_t = "tt_cpt_dmet_yrs_pos",
-          y_t2 = "tt_os_dmet_yrs",
-          y_e = "os_dx_status",
-          boot_seed = x,
-        )
-      })
+      .f = lasso_wrap_os
     )
   )
+cli::cli_alert_success(paste0("Finished bootstraps at ", Sys.time()))
 
 readr::write_rds(
   x = dft_boot_dmet_os,
@@ -287,15 +310,16 @@ readr::write_rds(
 )
 
 dft_boot_dmet_os <- dft_boot_dmet_os %>%
+  filter(!is.na(fit)) %>%
   mutate(
     coef_mat = purrr::map(
       .x = fit, 
       .f = get_cv_lasso_coefs
-    ),
+    ) ,
     n_features_select = purrr::map_dbl(
       .x = coef_mat,
-      .f = (function(x) x %>% filter(abs(hr-1) > 0.01) %>% nrow)
-    ) 
+      .f = (function(x) x %>% filter(abs(log_hr) > 0.01) %>% nrow)
+    )
   )
 
 dft_coef_dmet_os <- dft_boot_dmet_os %>%
@@ -306,18 +330,20 @@ dft_coef_dmet_os %<>%
   mutate(feature = forcats::fct_inorder(feature)) %>%
   group_by(feature) %>%
   summarize(
-    reliability = mean(abs(hr-1) > 0.01),
-    hr = mean(hr)
+    reliability = mean(abs(log_hr) > 0.01),
+    hr = exp(mean(log_hr))
   ) 
 
 gg_coef_flat_dmet_os <- plot_coef_grid_flat(
   dft_coef_dmet_os,
-  plot_title = "Model features - OS from dmet"
+  plot_title = "Model features - OS from dmet",
+  ncol = 6
 )
 
 gg_coef_reliability_dmet_os <- plot_coef_grid_reliability(
   dft_coef_dmet_os,
-  plot_title = "Selected features - OS from dmet"
+  plot_title = "Selected features - OS from dmet",
+  ncol = 6
 )
 
 gg_hr_forest_dmet_os <- dft_coef_dmet_os %>%
@@ -329,9 +355,14 @@ gg_hr_forest_dmet_os <- dft_coef_dmet_os %>%
     .,
     pt_color_col = "reliability",
     pt_shape = 18,
-    plot_title = "Hazard ratios of frequently selected features"
+    plot_title = "Frequently selected features for OS from metastasis"
   )
-    
+
+gg_hr_scatter_dmet_os <- dft_coef_dmet_os %>%
+  filter(reliability >= 0.5) %>%
+  plot_hr_rel_scatter(
+    plot_title = "Frequently selected features for OS from metastasis"
+  )
 
 ggsave(
   filename = here('output', 'fig', 'features_dmet_os.pdf'),
@@ -350,6 +381,14 @@ ggsave(
   plot = gg_hr_forest_dmet_os,
   height = 4, width = 6
 )
+
+ggsave(
+  filename = here('output', 'fig', 'hr_scatter_dmet_os.pdf'),
+  plot = gg_hr_scatter_dmet_os,
+  height = 4, width = 6
+)
+
+
 
 
 
