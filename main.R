@@ -6,15 +6,17 @@ library(here)
 library(fs)
 
 # Important!
-# Manually add the files in https://app.box.com/folder/200927784826 to
+# Some files must be manually added to build on other's work:
+# - Files in https://app.box.com/folder/200927784826 to
 # data/msk_box_derived (╭ರ_⊙)
+# - Add https://app.box.com/file/1198248348909?s=wjdjmr81rkobzsy4q5c2a0v1f3jmqc6l to "data" directory.
 
 # Load all helper functions
 purrr::walk(.x = fs::dir_ls('R'), .f = source)
 
 source(here('analysis', 'script', 'get_raw_data.R'))
 source(here('analysis', 'script', 'filter_data_for_cohort.R'))
-source(here('analysis', 'script', 'process_data.R'))
+source(here('analysis', 'script', 'process_drug_data.R'))
 rmarkdown::render(
   input = here('analysis', 'report', 'brca_regimens.Rmd'),
   output_file = '01-bpc-brca-regimen-overview.html',

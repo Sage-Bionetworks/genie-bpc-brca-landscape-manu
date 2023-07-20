@@ -68,6 +68,8 @@ dft_gene_feat <- full_join(dft_mut, dft_cna, by = "stable_id") %>%
   full_join(., dft_fus, by = "stable_id") %>%
   rename(cpt_genie_sample_id = stable_id)
 
+dft_gene_feat_wide <- dft_gene_feat
+
 # Go long to conform with previous code.
 dft_gene_feat %<>%
   pivot_longer(
@@ -76,6 +78,11 @@ dft_gene_feat %<>%
     values_to = "value"
   )
 
+# Save these - they will be filtered and merged with clinical features later on.
+readr::write_rds(
+  x = dft_gene_feat,
+  file = here('data', '
+)
 
 
 dft_dmet_timing <- get_dmet_timing(ca_ind_df = dft_ca_ind)
