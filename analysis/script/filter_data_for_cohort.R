@@ -66,12 +66,37 @@ key_filt_help <- function(dat) {
 dft_cpt %<>% key_filt_help(.)
 dft_reg %<>% key_filt_help(.)
 
+
+
+# clinically these are stated as HR then HER2, so we adhere to that.
+vec_bca_manu <- c(
+  'HR+, HER2-', 
+  'HR+, HER2+', 
+  'HR-, HER2+', 
+  'Triple Negative'
+)
+
+# Derived variables:
+dft_ca_ind %<>% 
+  mutate(
+    # clinically these are stated as HER2 then HR, so we adhere to that.
+    bca_subtype_f = case_when(
+      is.na(bca_subtype) ~ NA_character_,
+      bca_subtype %in% 'HER2-, HR+' ~ vec_bca_manu[1],
+      bca_subtype %in% 'HER2+, HR+' ~ vec_bca_manu[2],
+      bca_subtype %in% 'HER2+, HR-' ~ vec_bca_manu[3],
+      bca_subtype %in% 'Triple Negative' ~ vec_bca_manu[4],
+      T ~ NA_character_
+    ),
+    bca_subtype_f = factor(bca_subtype_f, levels = vec_bca_manu),
+    bca_subtype_f_simple = forcats::fct_collapse(
+      bca_subtype_f,
+      "HER2+" = vec_bca_manu[2:3]
+    )
+  )
+
 fs::dir_create(here('data', 'clin_data_cohort'))
 
-readr::write_rds(
-  x = dft_pt,
-  file = here('data', 'clin_data_cohort', 'dft_pt.rds')
-)
 
 
 # Not a best practice to use the names, but it will work.
