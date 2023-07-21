@@ -1,6 +1,11 @@
-fit_boot_cv_ltrc_lasso <- function(x_mat, y_df, 
-                                   y_t, y_t2, y_event,
-                                   cv_folds = 10, boot_seed = NULL) {
+fit_boot_cv_ltrc_lasso <- function(
+    x_mat, 
+    y_df,  
+    y_t, 
+    y_t2, 
+    y_event,
+    cv_folds = 5, 
+    boot_seed = NULL) {
   if (!is.null(boot_seed)) {
     set.seed(boot_seed)
   }
