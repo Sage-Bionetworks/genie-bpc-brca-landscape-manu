@@ -25,7 +25,8 @@ rmarkdown::render(
 
 # No longer needed the following, using inputs from MSK bioinformatics team:
 # source(here('analysis', 'script', 'merge_gene_panels.R'))
-source(here('analysis', 'script', 'process_msk_gene.R'))
+source(here('analysis', 'script', 'save_rds_msk_gene.R'))
+source(here('analysis', 'script', 'combine_gene_feat.R'))
 source(here('analysis', 'script', 'create_surv_dat_dmet.R'))
 
 # Lots of stuff here...
