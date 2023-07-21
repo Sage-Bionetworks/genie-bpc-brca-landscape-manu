@@ -74,3 +74,5 @@ synLogin()
 classified_meds_synid <- "syn51405609"
 synGet(entity = classified_meds_synid,
        downloadLocation = here("data"))
+
+# And one file created by Protiva and Brooke - I saved a perm

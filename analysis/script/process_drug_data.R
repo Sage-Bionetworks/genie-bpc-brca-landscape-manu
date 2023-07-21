@@ -19,6 +19,7 @@ purrr::walk(.x = here("R", dir(here("R"))), .f = source)
 
 data_list <- readr::read_rds(here("data-raw", "data_list.rds"))
 
+
 # Update May 18: Remove participants with Sarcomas.  
 #   The paper is limited in scope to only those without sarcoma, and
 #   this matches with Protiva's previous work.
@@ -32,31 +33,37 @@ data_list$BrCa_v1.2 <- data_list$BrCa_v1.2 %>%
     .x = .,
     .f = (function(x) filter_df_by_rid(x, vec_not_sarcoma))
   )
-# Open question:  Is this sane given that 20% of the cohort has missing
-#   values for this variable?  Do we need to go deeper?
 
 
 
 
 
 
+# dft_med_classified <- readr::read_csv(
+#   file = here("data", "tx_by_class_metastatic_filt_cohort.csv")
+# )
+
+
+# Note: The file I had loaded before did not have the same column names.
+#  I loaded a different file that Brooke created to try and fix this, which
+#  appeared to have the correct columns.
 dft_med_classified <- readr::read_csv(
-  file = here("data", "tx_by_class_metastatic_filt_cohort.csv")
+  file = here('data', 'tx_by_class_metastatic_filt_cohort.csv')
 )
 
 dft_med_classified <- dft_med_classified %>%
   select(
     record_id = PATIENT_ID,
     regimen_number = REGIMEN_NUMBER,
-    ca_seq = CA_SEQ,
-    agent = AGENT,
+    ca_seq = CA_SEQ, 
+    agent = AGENT, 
     regimen = REGIMEN,
     class1 = Class1,
     class1.1 = Class1.1,
     exclude = Exclude
   )
 
-# dft_med_classified %>% pull(regimen) %>% unique %>% length
+
 
 
 
