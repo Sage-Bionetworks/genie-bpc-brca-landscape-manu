@@ -9,7 +9,6 @@ library(fs)
 # Some files must be manually added to build on other's work:
 # - Files in https://app.box.com/folder/200927784826 to
 # data/msk_box_derived (╭ರ_⊙)
-# - Add https://app.box.com/file/1198248348909?s=wjdjmr81rkobzsy4q5c2a0v1f3jmqc6l to "data" directory.
 
 # Load all helper functions
 purrr::walk(.x = fs::dir_ls('R'), .f = source)
