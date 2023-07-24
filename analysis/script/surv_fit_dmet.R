@@ -107,7 +107,7 @@ boot_models_dmet_hr_pos_her2_neg <- surv_fit_dmet_wrap(
 boot_models_dmet_her2_pos <- surv_fit_dmet_wrap(
   dat = dft_dmet_surv_her2_pos,
   boot_rep = n_boot, 
-  main_seed = boot_draw_seed + 1
+  main_seed = boot_draw_seed + 1 # unknown error.
 ) 
 
 

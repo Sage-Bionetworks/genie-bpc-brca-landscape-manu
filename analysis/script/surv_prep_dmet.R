@@ -144,17 +144,17 @@ dft_bl <- dft_ca_ind %>%
   ) %>%
   full_join(., dft_bl, by = "record_id") 
 
+dft_bl %>% mutate(na_check = is.na(dx_to_dmets_yrs)) %>% tabyl(na_check)
 
 dft_bl %<>% 
   mutate(
-    dx_to_dmet_yrs = if_else(stage_dx_iv %in% "Stage IV", 0, dx_to_dmets_yrs),
+    dx_to_dmets_yrs = if_else(stage_dx_iv %in% "Stage IV", 0, dx_to_dmets_yrs),
     tt_os_dmet_yrs = case_when(
       is.na(dx_to_dmets_yrs) ~ NA_real_,
       T ~ tt_os_dx_yrs - dx_to_dmets_yrs,
     )
     # pfs is already relative to stage IV or dmet date.
   ) 
-
 dft_dmet_surv <- left_join(
   dft_gene_feat_dmet,
   dft_bl,
@@ -176,6 +176,14 @@ dft_dmet_surv <- dft_dmet_surv %>%
     birth_year_c = birth_year - 1970, # approximately centered.
   )
 
+dft_dmet_surv %>%
+  filter(is.na(tt_os_dmet_yrs) | is.na(tt_cpt_dmet_yrs)) %>%
+  select(record_id, dx_to_dmets_yrs, tt_os_dmet_yrs, tt_os_dx_yrs)
+
+dft_dmet_surv %>% 
+  mutate(time_diff = tt_cpt_dmet_yrs - tt_os_dmet_yrs) %>%
+  ggplot(., aes(x = time_diff)) + stat_ecdf()
+
 # Limitation of the method:
 dft_dmet_surv %<>%
   filter(!(tt_cpt_dmet_yrs > tt_os_dmet_yrs))
@@ -186,3 +194,28 @@ readr::write_rds(
   file = here('data', 'survival', 'prepared_data', 'surv_dmet.rds')
 )
 
+
+
+
+
+
+
+
+
+# dft_dmet_timing %>% 
+#   mutate(developed_dmet = 1) %>% 
+#   select(record_id, developed_dmet, dmet_yrs) %>%
+#   left_join(
+#     (select(dft_ca_ind, record_id, ca_seq, bca_subtype_f_simple, 
+#             tt_os_dmet_yrs) %>%
+#        tt_os_dmet_yrs = case_when(
+#          is.na(dx_to_dmets_yrs) ~ NA_real_,
+#          T ~ tt_os_dx_yrs - dx_to_dmets_yrs,
+#        )
+#     ),
+#     .,
+#     by = "record_id"
+#   )
+# # Getting the numbers for a consort-like diagram here.
+# vec_surv_consort_dmet_all <- character(0L)
+# vec_surv_consort_dmet_all["Cohort"] <-  dft_ca_ind
