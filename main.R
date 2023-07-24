@@ -28,7 +28,7 @@ rmarkdown::render(
 source(here('analysis', 'script', 'save_rds_msk_gene.R'))
 source(here('analysis', 'script', 'combine_gene_feat.R'))
 source(here('analysis', 'script', 'create_surv_dat_dmet.R'))
+source(here('analysis', 'script', 'surv_prep_dmet.R'))
 
-# Lots of stuff here...
 
 # source(here('analysis', 'scripts', 'upload_outputs_synapse.R'))
