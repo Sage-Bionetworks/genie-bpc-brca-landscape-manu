@@ -1,6 +1,7 @@
 plot_hr_rel_scatter <- function(
     dat,
     legend_title = NULL,
+    plot_subtitle = NULL,
     plot_title = NULL,
     pal = c("#ddaa33", "#bb5566", "#004488", "gray80"),
     txt_size = 2.5) {
@@ -30,8 +31,10 @@ plot_hr_rel_scatter <- function(
     scale_color_manual(name = legend_title,
                        values = pal) + 
     labs(title = plot_title,
+         subtitle = plot_subtitle, 
          x = "Cumulative hazard ratio",
          y = "Reliability") + 
+    scale_y_continuous(limits = c(NA, 1)) + 
     theme(
       axis.title.y = element_markdown(vjust = 0.5, angle = 0),
       plot.title.position = "plot"
