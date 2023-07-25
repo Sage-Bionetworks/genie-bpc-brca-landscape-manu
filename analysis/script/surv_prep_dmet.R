@@ -30,6 +30,30 @@ dft_gene_feat <- readr::read_rds(
 )
 
 
+dft_ca_ind %>%
+  tabyl(bca_subtype_f_simple) %>%
+  adorn_totals(.) %>%
+  select(1:2) %>%
+  mutate(
+    dmet_filter = 0,
+    entry_after_event_filter = 0
+  )
+         
+
+dft_cpt %>%
+  select(record_id, cpt_order_int, cpt_report_int) %>%
+  filter(is.na(cpt_order_int) | is.na(cpt_report_int))
+# Never missing - I've been lied to!
+
+dft_cpt %>%
+  select(record_id, cpt_order_int, cpt_report_int) %>%
+  mutate(day_dist = cpt_order_int - cpt_report_int) %>%
+  pull(day_dist) %>%
+  summary
+
+
+
+
 
 
 dft_dmet_timing <- get_dmet_timing(ca_ind_df = dft_ca_ind)
