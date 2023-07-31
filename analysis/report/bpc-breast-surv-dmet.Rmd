@@ -12,6 +12,25 @@ knitr::opts_chunk$set(echo = F, include = F,
                       warning = F, message = F)
 ```
 
+## Setup
+
+Characteristics of the data:
+
+- This cohort deals with non-Sarcoma breast cancer cases (n=~1100) 
+- While the cohort contains data from all stages, we will index from the date of metastasis here.
+- Secondary use data, curated from medical records using a common data model.
+- Multi-site, technically international but overwhelmingly from the east coast US.
+- Participants enter the cohort (are curated) only if they have a second-generation sequencing test result.  
+
+## Analysis
+
+- Goal:  Assessing whether there are features which are prognostic for overall survival from metastasis.  There is a special interest in genetic features.
+- Features:
+  - Genetic:  Binary indicators for mutations, copy number alterations and fusions for about 150 genes which are common to all sequencing panels in the cohort.
+  - Clinical:  Demographics, stage at diagnosis, etc.
+-
+
+
 ## Changes
 
 - Added stratified survival estimates for hormonal subtype.
