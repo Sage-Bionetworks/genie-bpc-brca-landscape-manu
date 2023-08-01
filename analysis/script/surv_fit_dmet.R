@@ -1,7 +1,7 @@
 # Description: Fit the predictors of survival from distant metastasis.
 # Additionally, fit these for hormone receptor subtypes.
 
-n_boot <- 300
+n_boot <- 3
 boot_draw_seed <- 102039
 
 library(magrittr)
@@ -15,29 +15,61 @@ library(tidyr)
 library(stringr)
 library(survival)
 library(glmnet)
+library(fastDummies)
 library(tictoc)
 
 purrr::walk(.x = fs::dir_ls('R'), .f = source)
 
 tic()
 
-dft_dmet_surv <- readr::read_rds(
-  file = here('data', 'survival', 'prepared_data', 'surv_dmet.rds')
+dft_dmet_surv_all <- readr::read_rds(
+  file = here('data', 'survival', 'prepared_data', 
+              'surv_dmet_all.rds')
 )
 
-# We will repeat this for four cohorts (including dft_dmet_surv itself):
-dft_dmet_surv_trip_neg <- dft_dmet_surv %>%
-  filter(bca_subtype_f_simple %in% "Triple Negative")
-dft_dmet_surv_hr_pos_her2_neg <- dft_dmet_surv %>%
-  filter(bca_subtype_f_simple %in% "HR+, HER2-")
-dft_dmet_surv_her2_pos <- dft_dmet_surv %>%
-  filter(bca_subtype_f_simple %in% "HER2+")
+# in order to include bca_subtype_simple_f as a covariate we will need dummies 
+#  for it:
+dft_dmet_surv_all <- dft_dmet_surv_all %>%
+  # make a simpler, standard column name version:
+  mutate(
+    bca = case_when(
+      bca_subtype_f_simple %in% "HR+, HER2-" ~ "hr_pos_her2_neg",
+      bca_subtype_f_simple %in% "HER2+" ~ "her2_pos",
+      bca_subtype_f_simple %in% "Triple Negative" ~ "trip_neg",
+      bca_subtype_f_simple %in% "(NC or NR)" ~ "nc_nr",
+      T ~ "error"
+    )
+  ) %>%
+  dummy_cols(., select_columns = "bca") %>% 
+  select(-bca, -bca_hr_pos_her2_neg) 
 
 
-# Big wrapper that creates the surv object, fits the survival, returns the datasets.
-# Because the model is really specific to this one use case, we didn't put this
-# wrapper into the /R directory.
-surv_fit_dmet_wrap <- function(dat, boot_rep, main_seed) {
+# Load the subset datasets also:
+dft_dmet_surv_trip_neg <- readr::read_rds(
+  file = here('data', 'survival', 'prepared_data', 
+              'surv_dmet_trip_neg.rds')
+)
+dft_dmet_surv_hr_pos_her2_neg <- readr::read_rds(
+  file = here('data', 'survival', 'prepared_data', 
+              'surv_dmet_hr_pos_her2_neg.rds')
+)
+dft_dmet_surv_her2_pos <- readr::read_rds(
+  file = here('data', 'survival', 'prepared_data',
+              'surv_dmet_her2_pos.rds')
+)
+
+
+
+
+#' @description Big wrapper that creates the surv object, fits the survival,
+#'   returns the datasets. Because the model is really specific to this one use
+#'   case, we didn't put this wrapper into the /R directory.
+#' @param dat A dataset with one row per {record_id}.
+#' @param boot_rep The number of bootstrap resamples to do.
+#' @param main_seed The seed used to draw the bootstrap seeds.
+#' @param additional_features Any features to add to the X matrix.
+surv_fit_dmet_wrap <- function(dat, boot_rep, main_seed, 
+                               additional_features = character(0)) {
   y_dmet_os <- with(
     dat,
     Surv(
@@ -58,7 +90,8 @@ surv_fit_dmet_wrap <- function(dat, boot_rep, main_seed) {
       stage_dx_iv_num,
       birth_year_c,
       white,
-      hispanic
+      hispanic,
+      all_of(additional_features)
     ) %>%
     as.matrix(.)
   
@@ -87,9 +120,11 @@ surv_fit_dmet_wrap <- function(dat, boot_rep, main_seed) {
 }
 
 boot_models_dmet_all <- surv_fit_dmet_wrap(
-  dat = dft_dmet_surv, 
+  dat = dft_dmet_surv_all,
   boot_rep = n_boot, 
-  main_seed = boot_draw_seed
+  main_seed = boot_draw_seed,
+  additional_features = c("bca_her2_pos", "bca_trip_neg", "bca_nc_nr")
+  # therefore, reference group is HR+/HER2-
 ) 
 
 boot_models_dmet_trip_neg <- surv_fit_dmet_wrap(
@@ -122,20 +157,20 @@ cli::cli_progress_message(
 )
 
 # Save all the fitted models as RDS:
-readr::write_rds(
-  x = boot_models_dmet_all,
-  file = here('data', 'survival', 'fit_outputs', 'fit_dmet_all.rds')
-)
-readr::write_rds(
-  x = boot_models_dmet_trip_neg,
-  file = here('data', 'survival', 'fit_outputs', 'fit_dmet_trip_neg.rds')
-)
-readr::write_rds(
-  x = boot_models_dmet_hr_pos_her2_neg,
-  file = here('data', 'survival', 'fit_outputs', 'fit_dmet_hr_pos_her2_neg.rds')
-)
-readr::write_rds(
-  x = boot_models_dmet_her2_pos,
-  file = here('data', 'survival', 'fit_outputs', 'fit_dmet_her2_pos.rds')
-)
+# readr::write_rds(
+#   x = boot_models_dmet_all,
+#   file = here('data', 'survival', 'fit_outputs', 'fit_dmet_all.rds')
+# )
+# readr::write_rds(
+#   x = boot_models_dmet_trip_neg,
+#   file = here('data', 'survival', 'fit_outputs', 'fit_dmet_trip_neg.rds')
+# )
+# readr::write_rds(
+#   x = boot_models_dmet_hr_pos_her2_neg,
+#   file = here('data', 'survival', 'fit_outputs', 'fit_dmet_hr_pos_her2_neg.rds')
+# )
+# readr::write_rds(
+#   x = boot_models_dmet_her2_pos,
+#   file = here('data', 'survival', 'fit_outputs', 'fit_dmet_her2_pos.rds')
+# )
 
