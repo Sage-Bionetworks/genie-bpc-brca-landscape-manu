@@ -7,6 +7,7 @@ Todo:
 - It's not a rare event at all (>50 cases) for participants to have a report 
   date which is after their death or loss to followup.  Why is this?  Does
   this indeed challenge our assumptions?
+- Update all reports to read in the distinctly filtered survival datasets.
 
 Curiousities:
 - Are GENIE-MSK-P-0017706-T02-IM6 and GENIE-MSK-P-0017706-T01-IM6 totally identical?

@@ -9,14 +9,15 @@ combine_cpt_gene_feat <- function(dat_cpt, dat_gene_feat, keep_only_first = T) {
     cli::cli_abort("Duplicate NGS rows in dat_cpt.")
   }
   
-  vec_samples <- dat_cpt$cpt_genie_sample_id %>% unique
+  # Edit: we will do this later on - makes no sense to do it here.
+  # vec_samples <- dat_cpt$cpt_genie_sample_id %>% unique
+  # 
+  # rtn <- filter_gene_features(
+  #   dat_gene_feat = dat_gene_feat,
+  #   vec_samples = vec_samples
+  # )
   
-  rtn <- filter_gene_features(
-    dat_gene_feat = dat_gene_feat,
-    vec_samples = vec_samples
-  )
-  
-  rtn %<>%
+  rtn <- dat_gene_feat %>%
     pivot_wider(
       names_from = "feature",
       values_from = "value",
