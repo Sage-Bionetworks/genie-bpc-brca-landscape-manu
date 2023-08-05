@@ -1,7 +1,7 @@
 ---
 title: "Survival from metastasis in a secondary-use breast cancer cohort"
 output: beamer_presentation
-date: "2023-07-27"
+date: "2023-08-03"
 editor_options: 
   chunk_output_type: console
 ---
@@ -11,8 +11,6 @@ knitr::opts_chunk$set(echo = F, include = F,
                       fig.width = 7, fig.height = 5,
                       warning = F, message = F)
 ```
-
-  
 
 
 ```{r}
@@ -41,7 +39,7 @@ boot_models_dmet_her2_pos <- readr::read_rds(
 
 # Can replace these once you go back and fix the survival function creator:
 dft_dmet_surv_all <- readr::read_rds(
-  file = here('data', 'survival', 'prepared_data', 'surv_dmet.rds')
+  file = here('data', 'survival', 'prepared_data', 'surv_dmet_all.rds')
 )
 dft_dmet_surv_trip_neg <- readr::read_rds(
   file = here('data', 'survival', 'prepared_data', 'surv_dmet_trip_neg.rds')
@@ -138,8 +136,8 @@ gg_rel_scatter_os_her2_pos <- plot_hr_rel_scatter(
 
 Characteristics of the data:
 
-- This cohort deals with non-Sarcoma breast cancer cases (n=~1100).
-- While the cohort contains data from all stages, we will index from the date of metastasis here.
+- This cohort deals with non-Sarcoma breast cancer cases (n=1100).
+- While the cohort contains data from all stages, we will index from the date of metastasis here (n=818).
 - Secondary-use, real-world data, curated from medical records using a common data model (PRISSMM).
 - Multi-site, technically international but overwhelmingly from the east coast US.
 - Participants enter the cohort (are curated) only if they have a second-generation sequencing test result, plus some additional criteria.
@@ -148,7 +146,7 @@ Characteristics of the data:
 
 - Goal:  Assessing whether there are features which are prognostic for overall survival from metastasis.  There is a special interest in genetic features.
 - Features:
-  - Genetic:  Binary indicators for mutations, copy number alterations and fusions for about 150 genes which are common to all sequencing panels in the cohort.
+  - Genetic:  Binary indicators for mutations, copy number alterations and fusions for about 150 genes which are common to all sequencing panels in the cohort.  We also required a prevalence of $>0.5\%$ for any feature.
   - Clinical:  Demographics, stage at diagnosis, etc.
 - In addition to assessing this model in the entire cohort, there's interest in stratified analyses (groups as small as 150), or looking at predictive features for drug response (even smaller groups).
 
@@ -309,10 +307,24 @@ gg_surv_dmet_trip_neg_PTEN_mut
 
 ## Discussion
 
-- We talked about danger of bootstrapping with cross validation - one or more test cases could be identical to the training case.  Does this explain the results?
-- What alternatives do we have at our disposal?  Repeated cohort splitting instead of cross validation?  Alternative ways of building an ensemble?  Give up and just run the LASSO once? (kidding)
-- Also considered ditching coefficients in favor of variable importance and using boosted trees, NN, etc.
-- *minor concern:* I got similar results with an L1-dominant penalty ($\alpha = 0.98$) and elastic net ($\alpha = 0.5$).  I know elastic net generally performs well with prediction but wasn't aware of the same results when the general goal is feature selection.
+- I want to do a targetted simluation to test whether methods are performing well.
+
+- Data generation (discuss)
+
+- Methods:
+  - The one shown today (fixed so that copies of the same person don't end up in different folds).
+  - Univariate cox models.
+  - Random subsampling rather than bootstrapping.
+  - Randomized lasso.
+  - Stability selection.
+
+- Metrics for success: AUC (variable selection), MSE (bias in coefficients).
+
+## Discussion 
+
+- All of these are in the penalized regression family.  Are there other areas I'm blind to?
+- I'm currently not interested in black box methods and variable importance measures, but I have considered whether those meet our goals.
+
 
 
 

@@ -1,4 +1,8 @@
-# Description:  Permute the dmet surv data for simulations.
+# Description:  Use the surv data for simulations.
+
+# determines the seeds for each simualtion through a random draw below.
+top_level_seed <- 2405
+n_datasets <- 1000 
 
 library(fs)
 library(here)
@@ -12,7 +16,7 @@ dft_surv_dmet <- readr::read_rds(
 )
 
 # grab the binary covariates for now:
-sim_skel <- dft_surv_dmet %>% 
+sim_fodder <- dft_surv_dmet %>% 
   select(
     record_id, 
     white, hispanic, 
@@ -21,12 +25,12 @@ sim_skel <- dft_surv_dmet %>%
     matches("_fus$")
   )
 
-colnames(sim_skel) <- c(
+colnames(sim_fodder) <- c(
   "sim_rec_id", 
   paste0(
     "x_", 
     str_pad(
-      1:(ncol(sim_skel)-1), 
+      1:(ncol(sim_fodder)-1), 
       width = 3,
       pad = 0, 
       side = "left"
@@ -34,18 +38,14 @@ colnames(sim_skel) <- c(
   )
 )
 
-sim_skel %<>% 
-  mutate(
-    sim_rec_id = paste0(
-      "rec_", 
-      str_pad(
-        1:n(), 
-        width = 4, 
-        pad = 0, 
-        side = "left"
-      )
-    )
-  ) %>%
+# Important:  set a seed for random reshuffling of rows.  This is critical 
+# because people will be truncated in this study, so our n will draw the first
+# rows first to get a consistent sample size.
+set.seed(top_level_seed)
+
+sim_fodder %<>% 
+  sample_frac(., size = 1, replace = F) %>%
+  add_id(., prefix = "rec-", name = "sim_rec_id") %>%
   # make sure all the non-record ID columns are doubles:
   mutate(
     across(
@@ -53,63 +53,108 @@ sim_skel %<>%
       .fns = as.double
     )
   )
+sim_fodder %<>% select(-sim_rec_id)
 
-test_x <- select(sim_skel, -sim_rec_id)
-test_beta <- test_x %>% 
-  create_surv_beta_unif(., proportion_null = 0.8)
-test_x %<>% as.matrix(.)
 
-test_beta*test_x
+sim <- tibble(
+  sim_seed = sample.int(n = 10^7, size = n_datasets)
+)
 
--log(runif(nrow(test_x), 0, 1))/exp(t(test_x)%*%test_beta)
+# Add a column storing the true beta values.
+sim %<>%
+  mutate(
+    # returns a list of vectors, each one contains the betas for that simulation.
+    beta = purrr::map(
+      .x = sim_seed,
+      .f = (function(x) {
+        create_surv_beta_unif(
+          dat = sim_fodder,
+          proportion_null = 0.8,
+          seed = x
+        )
+      })
+    )
+  )
 
-# A super simple example to make sure I'm lot losing it:
-# The frist covariate increases risk, the rest do nothing.
-test_beta = c(0.7, 0, 0, 0)
-# Only participant #2 has the fist coviarate positive, so they should be at higher risk.
-test_x = matrix(c(0, 1, 1, 1,
-                  1, 0, 0, 0,
-                  0, 1, 0, 0),
-                nrow = 3,
-                byrow = T)
-test_x %*% test_beta # col vector output
-t(test_beta) %*% t(test_x) # row vector output.
-purrr::map_dfr(.x = 1:100, .f = (function(do_nothing) {
-  vec <- -log(runif(nrow(test_x), 0, 1))/exp(test_x %*% test_beta)
-  tibble(y1 = vec[1], y2 = vec[2], y3 = vec[3])
-})) %>%
-  colMeans(.)
-# They tend to die sooner, great.
+# Generate data according to those beta values.
+sim %<>%
+  mutate(
+    gen_method = "gen_dat_one",
+    gen_dat = purrr::map2(
+      .x = sim_seed, 
+      .y = beta,
+      .f = (function(x,y) {
+        gen_data_one(
+          # These parameters were just played around with until we got 
+          #   reasonable rates of censoring and truncation (10-20% each),
+          #   medians survivals in the ballpark we expect, etc.
+          dat = sim_fodder, beta = y,
+          surv_shape = 0.7, surv_scale = 0.3,
+          trunc_shape = 0.9, trunc_scale = 2,
+          censor_min = 4, censor_max = 15,
+          limit_obs_n = 500,
+          return_type = "observed_combined",
+          # The *2 here is not needed - just feels odd to feed the exact 
+          # same seeds in.
+          seed = x * 2
+        ) 
+      })
+    )
+  )
 
-# https://stats.stackexchange.com/questions/135124/how-to-create-a-toy-survival-time-to-event-data-with-right-censoring
-# taking the parametrization h(t|a,p) = pa^pt^(p-1), so that
-# H(t) = a^pt^p, and if p < 1 (shape < 1) the hazard is decreasing, p > 1 => increasing.
-# See Marco Carone's course notes for this parametrization.
-# p = shape, lambda = scale.
-gen_times_cox_weib <- function(beta, x, shape, scale) {
-  num <- log(runif(n = nrow(x), 0, 1))
-  denom <- as.vector((scale^shape)*exp(x %*% beta)) # constant * rel haz
-  draws <- (-num/denom)^(1/shape)
+readr::write_rds(
+  x = sim,
+  file = here("sim", "gen_data", "gen_dat_one.rds")
+)
+      
 
-  return(draws)
-}
 
-# test one:
-gen_times_cox_weib(test_beta, test_x, shape = 0.5, scale = 1)
 
-gen_times_cox_weib(test_beta, test_x, shape = 0.7, scale = 0.25)
-# test mnay times:
-purrr::map_dfr(.x = 1:100, .f = (function(do_nothing) {
-  vec <- gen_times_cox_weib(test_beta, test_x, shape = 0.9, scale = 0.25)
-  tibble(y1 = vec[1], y2 = vec[2], y3 = vec[3])
-})) %>%
-  colMeans(.)
-# Mean for the undisturbed (no covaritaes affect) vectors should be
-gamma(1+1/0.9)/0.25
-# So that seems about right.
 
-# Next steps:  Generate data using the cox model weibull wrt betas for survival.  You could use this with beta = 0 for truncation times, or go uniform.  Uniform for censoring makes some sense too.
 
+
+
+# # Code showing good starting parameters:
+# purrr::map_dfr(
+#   .x = 1:1000,
+#   .f = (function(x) {
+#     gen_data_one(
+#       dat = test_x, beta = test_beta,
+#       surv_shape = 0.7, surv_scale = 0.3,
+#       trunc_shape = 0.9, trunc_scale = 2,
+#       censor_min = 4, censor_max = 15,
+#       return = "latent"
+#     )
+#   })
+# ) %>%
+#   summarize(
+#     median_t = median(t),
+#     median_x = median(x),
+#     prop_trunc = mean(x > t),
+#     prop_event = mean(x <= t & event %in% 1),
+#     prop_censored = mean(x <= t & event %in% 0)
+#   )
+
+
+
+# For debugging - see also the sim_setup.R script in explore.
+# Example of how to generate one beta and one simulated dataset:
+
+# test_beta <- create_surv_beta_unif(
+#   sim_fodder,
+#   proportion_null = 0.8, 
+#   seed = 2398
+# )
+# gen_data_one(
+#   dat = sim_fodder, beta = test_beta,
+#   surv_shape = 0.7, surv_scale = 0.3,
+#   trunc_shape = 0.9, trunc_scale = 2,
+#   censor_min = 4, censor_max = 15,
+#   limit_obs_n = NULL,
+#   return_type = "observed_combined",
+#   seed = 398
+# ) %>%
+#   glimpse
 
 
 
