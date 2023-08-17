@@ -162,7 +162,9 @@ dft_dmet_surv_all %<>%
 
 dft_surv_consort <- bind_rows(
   dft_surv_consort,
-  surv_cohort_track_help(dat = dft_dmet_surv_all, state = "dmet, CPT <= OS follow-up")
+  surv_cohort_track_help(
+    dat = dft_dmet_surv_all, state = "dmet, CPT <= OS follow-up"
+  )
 ) 
 
 dft_surv_consort %<>%

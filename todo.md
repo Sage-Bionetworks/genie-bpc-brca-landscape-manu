@@ -1,3 +1,8 @@
+Catastrophic:
+
+- The surv_fit_dmet_wrap() function was using dft_dmet_os, which will be detrimental for the subset analyses.
+
+
 Todo:
 
 - Change all files to load in the data in data/cohort_clin_data

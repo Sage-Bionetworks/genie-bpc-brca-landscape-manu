@@ -77,7 +77,7 @@ sim %<>%
   )
 
 # Generate data according to those beta values.
-sim %<>%
+sim_n500 <- sim %>%
   mutate(
     gen_method = "gen_dat_one",
     gen_dat = purrr::map2(
@@ -103,10 +103,44 @@ sim %<>%
   )
 
 readr::write_rds(
-  x = sim,
-  file = here("sim", "gen_data", "gen_dat_one.rds")
+  x = sim_n500,
+  file = here("sim", "gen_data", "gen_dat_one_n500.rds")
 )
       
+
+
+# Do the same with n = 80 to test the n ~ p situation.
+
+sim_n80 <- sim %>%
+  mutate(
+    gen_method = "gen_dat_one",
+    gen_dat = purrr::map2(
+      .x = sim_seed, 
+      .y = beta,
+      .f = (function(x,y) {
+        gen_data_one(
+          # These parameters were just played around with until we got 
+          #   reasonable rates of censoring and truncation (10-20% each),
+          #   medians survivals in the ballpark we expect, etc.
+          dat = sim_fodder, beta = y,
+          surv_shape = 0.7, surv_scale = 0.3,
+          trunc_shape = 0.9, trunc_scale = 2,
+          censor_min = 4, censor_max = 15,
+          limit_obs_n = 80,
+          return_type = "observed_combined",
+          # The *2 here is not needed - just feels odd to feed the exact 
+          # same seeds in.
+          seed = x * 2
+        ) 
+      })
+    )
+  )
+
+readr::write_rds(
+  x = sim_n80,
+  file = here("sim", "gen_data", "gen_dat_one_n80.rds")
+)
+
 
 
 
