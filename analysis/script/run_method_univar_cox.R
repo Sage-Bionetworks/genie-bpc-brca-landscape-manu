@@ -14,6 +14,10 @@ sim_n500 <- readr::read_rds(
   here('sim', 'gen_data', 'gen_dat_one_n500.rds')
 )
 
+
+# future::plan(strategy = sequential)
+future::plan(strategy = multisession, workers = 2)
+
 tic()
 
 # Example of running one dataset:
@@ -28,22 +32,24 @@ tic()
 sim_n80 %<>%
   mutate(
     analysis_method = "method_univar_cox",
-    gen_dat = purrr::map(
+    coef_est = furrr::future_map(
       .x = gen_dat,
       .f = (function(d) {
         method_univar_cox(d, ignore_cols = "id_obs")
-      })
+      }),
+      .progress = T # does nothing in sequential mode.
     )
   )
 
 sim_n500 %<>%
   mutate(
     analysis_method = "method_univar_cox",
-    gen_dat = purrr::map(
+    coef_est = furrr::future_map(
       .x = gen_dat,
       .f = (function(d) {
         method_univar_cox(d, ignore_cols = "id_obs")
-      })
+      }),
+      .progress = T # does nothing in sequential mode
     )
   )
 

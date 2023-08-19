@@ -16,62 +16,74 @@ sim_n500 <- readr::read_rds(
 
 tic()
 
-# Example of running one dataset:
-test_dat <- sim_n500 %>%
-  slice(1) %>%
-  pull(gen_dat) %>%
-  `[[`(1)
+# # Example of running one dataset:
+# test_dat <- sim_n500 %>%
+#   slice(1) %>%
+#   pull(gen_dat) %>%
+#   `[[`(1)
+# method_lasso_cv_repeat(
+#   test_dat,
+#   main_seed = 2019,
+#   rep = 25, # low number - but it will do for testing
+# )
+# toc()
 
-method_lasso_cv_repeat(
-  test_dat,
-  main_seed = 2019,
-  rep = 100 
+# method_univar_cox(test_dat)
+
+
+future::plan(strategy = multisession, workers = 6)
+
+# sim_n80 %<>% slice(1:2)
+sim_n500 %<>% slice(1:300)
+
+sim_n80 %<>%
+  mutate(
+    analysis_method = "method_lasso_cv_repeat",
+    gen_dat = furrr::future_map2(
+      .x = gen_dat,
+      .y = sim_seed,
+      .f = (function(d, s) {
+        method_lasso_cv_repeat(
+          test_dat,
+          main_seed = s * 7, 
+          rep = 25, # low number - but it will do for testing
+        )
+      })
+    )
+  )
+
+readr::write_rds(
+  x = sim_n80,
+  file = here('sim', 'run_methods', 'gen_dat_one_n80_lasso_cv_repeated.rds')
 )
 
-toc()
-# # 
-# # method_univar_cox(test_dat)
-# 
-# 
-# sim_n80 %<>%
-#   mutate(
-#     analysis_method = "method_univar_cox",
-#     gen_dat = purrr::map(
-#       .x = gen_dat,
-#       .f = (function(d) {
-#         method_univar_cox(d, ignore_cols = "id_obs")
-#       })
-#     )
-#   )
-# 
-# sim_n500 %<>%
-#   mutate(
-#     analysis_method = "method_univar_cox",
-#     gen_dat = purrr::map(
-#       .x = gen_dat,
-#       .f = (function(d) {
-#         method_univar_cox(d, ignore_cols = "id_obs")
-#       })
-#     )
-#   )
+sim_n500 %<>%
+  mutate(
+    analysis_method = "method_lasso_cv_repeat",
+    gen_dat = furrr::future_map2(
+      .x = gen_dat,
+      .y = sim_seed,
+      .f = (function(d, s) {
+        method_lasso_cv_repeat(
+          test_dat,
+          main_seed = s * 7, 
+          rep = 25, # low number - but it will do for testing
+        )
+      })
+    )
+  )
+
+readr::write_rds(
+  x = sim_n500,
+  file = here('sim', 'run_methods', 'gen_dat_one_n500_lasso_cv_repeated_f300.rds')
+)
+
+cli::cli_alert_success(
+  glue(
+    "Ran the CV repeat method in {toc()$callback_msg}."
+  )
+)
 
 
-# cli::cli_alert_success(
-#   glue(
-#     "Ran the cox univariate method in {toc()$callback_msg}."
-#   )
-# )
-# 
-# readr::write_rds(
-#   x = sim_n80,
-#   file = here('sim', 'run_methods', 'gen_dat_one_n80_lasso_cv_repeated.rds')
-# )
-# 
-# readr::write_rds(
-#   x = sim_n500,
-#   file = here('sim', 'run_methods', 'gen_dat_one_n500_lasso_cv_repeated.rds')
-# )
 
 
-  
-    

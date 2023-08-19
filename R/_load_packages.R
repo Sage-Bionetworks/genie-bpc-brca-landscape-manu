@@ -1,5 +1,6 @@
 library(fs)
 library(purrr)
+library(furrr)
 library(here)
 
 library(yaml)
@@ -13,6 +14,7 @@ library(yaml)
 library(stringr)
 library(glue)
 library(tictoc)
+library(PRROC)
 
 library(survival)
 library(glmnet)

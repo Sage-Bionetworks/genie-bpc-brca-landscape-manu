@@ -74,7 +74,9 @@ sim %<>%
         )
       })
     )
-  )
+  ) %>%
+  add_id(.) %>%
+  select(id, sim_seed, beta)
 
 # Generate data according to those beta values.
 sim_n500 <- sim %>%
@@ -101,6 +103,24 @@ sim_n500 <- sim %>%
       })
     )
   )
+
+sim_n500 %<>%
+  mutate(
+    # Valid = only columns that have some variance, i.e. not all zero.
+    gen_dat_valid = purrr::map(
+      .x = gen_dat,
+      .f = (function(d) filter_dat_to_var_gte0(dat = d))
+    ), 
+    beta_valid = purrr::map2(
+      .x = beta,
+      .y = gen_dat_valid,
+      .f = (function(b, d) filter_beta_to_cols_in_dat(beta = b, dat = d))
+    )
+  )
+
+sim_n500 %<>%
+  select(id, sim_seed, beta, beta_valid, gen_method, gen_dat, gen_dat_valid)
+
 
 readr::write_rds(
   x = sim_n500,
@@ -135,6 +155,23 @@ sim_n80 <- sim %>%
       })
     )
   )
+
+sim_n80 %<>%
+  mutate(
+    # Valid = only columns that have some variance, i.e. not all zero.
+    gen_dat_valid = purrr::map(
+      .x = gen_dat,
+      .f = (function(d) filter_dat_to_var_gte0(dat = d))
+    ), 
+    beta_valid = purrr::map2(
+      .x = beta,
+      .y = gen_dat_valid,
+      .f = (function(b, d) filter_beta_to_cols_in_dat(beta = b, dat = d))
+    )
+  )
+
+sim_n80 %<>%
+  select(id, sim_seed, beta, beta_valid, gen_method, gen_dat, gen_dat_valid)
 
 readr::write_rds(
   x = sim_n80,
