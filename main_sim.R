@@ -13,4 +13,4 @@ source(here('analysis', 'script', 'create_surv_data_real.R'))
 
 # Cox univarate models (runs quickly - about 5 minutes)
 source(here('analysis', 'script', 'run_method_univar_cox.R'))
-
+source(here('analysis', 'script', 'eval_univar_cox.R'))
