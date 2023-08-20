@@ -33,7 +33,3 @@ source(here('analysis', 'script', 'surv_fit_dmet.R'))
 
 # source(here('analysis', 'scripts', 'upload_outputs_synapse.R'))
 
-# Simulation specific setup.  Does require some previous steps to be done.
-source(here('analysis', 'script', 'sim_folder_setup.R'))
-source(here('analysis', 'script', 'create_surv_data_real.R'))
-
