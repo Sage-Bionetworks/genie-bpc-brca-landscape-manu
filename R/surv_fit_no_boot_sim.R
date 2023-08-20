@@ -1,4 +1,3 @@
-
 #' @description Big wrapper that creates the surv object, fits the survival,
 #'   returns the datasets. Because the model is really specific to this one use
 #'   case, we didn't put this wrapper into the /R directory.

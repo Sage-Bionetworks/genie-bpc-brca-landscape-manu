@@ -15,8 +15,7 @@ sim_n500 <- readr::read_rds(
 )
 
 
-# future::plan(strategy = sequential)
-future::plan(strategy = multisession, workers = 2)
+
 
 tic()
 
