@@ -62,6 +62,9 @@ vignettes/*.pdf
 *.pptx
 *.rdata
 *.pdf
+*.css
+*.js
+*.woff
 
 # ignore misc files
 ~$*.docx

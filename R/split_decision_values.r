@@ -3,7 +3,7 @@
 #' @param true_beta
 #' @param coef_dat
 split_decision_values <- function(true_beta, coef_dat, d_name = "p.value") {
-  if (!identical(names(true_beta), coef_dat$term)) {
+  if (length(setdiff(names(true_beta), coef_dat$term)) > 0) {
     stop("The true_beta names don't match the terms in coef_dat")
   }
   

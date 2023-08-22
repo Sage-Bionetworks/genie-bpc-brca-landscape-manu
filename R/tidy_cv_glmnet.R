@@ -1,7 +1,7 @@
-tidy_cv_glmnet <- function(cv_coef, exp_coef = T, remove_zero = T) {
+tidy_cv_glmnet <- function(cv_coef, exp_coef = F, remove_zero = F) {
   rtn <- cv_coef %>%
     as.matrix(.) %>% 
-    as_tibble(., rownames = "feature") %>%
+    as_tibble(., rownames = "term") %>%
     rename(value = `1`)
   
   

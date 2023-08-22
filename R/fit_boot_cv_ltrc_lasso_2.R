@@ -28,14 +28,18 @@ fit_boot_cv_ltrc_lasso_2 <- function(
     event = y_dat[[event_col]]
   )
   
-  cv_fit <- cv.glmnet(
-    x = x_mat,
-    y = y_surv,
-    standardize = T,
-    alpha = 0.98, # Small amount of elastic net for convergence.
-    family = "cox",
-    #    nfolds = cv_folds
-    foldid = fold_id
+  cv_fit <- tryCatch(
+    expr = {
+      cv.glmnet(
+        x = x_mat,
+        y = y_surv,
+        standardize = T,
+        alpha = 0.98, # Small amount of elastic net for convergence.
+        family = "cox",
+        foldid = fold_id
+        )
+    },
+    error = function(e) {NULL}
   )
   
   return(cv_fit)

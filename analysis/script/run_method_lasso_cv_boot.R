@@ -14,6 +14,11 @@ sim_n500 <- readr::read_rds(
   here('sim', 'gen_data', 'gen_dat_one_n500.rds')
 )
 
+
+# time note:  rep = 25, first 200 rows took about 4.8 hours on 
+#   a personal computer running 6 threads for the n=80 + n=500.
+# Should be able to run with all 1000 in about a day with the same number of reps.
+
 tic()
 
 
@@ -47,11 +52,11 @@ sim_n80 %<>%
   mutate(
     analysis_method = "method_lasso_cv_boot",
     fit = furrr::future_map2(
-      .x = gen_dat,
+      .x = gen_dat_valid,
       .y = sim_seed,
       .f = (function(d, s) {
         surv_fit_boot_sim(
-          test_dat,
+          d,
           main_seed = s * 7,
           rep = 25, # low number - but it will do for testing
         )
@@ -63,18 +68,18 @@ sim_n80 %<>%
 
 readr::write_rds(
   x = sim_n80,
-  file = here('sim', 'run_methods', 'gen_dat_one_n80_lasso_cv_boot_f100.rds')
+  file = here('sim', 'run_methods', 'gen_dat_one_n80_lasso_cv_boot_f200.rds')
 )
 
-sim_n80 %<>%
+sim_n500 %<>%
   mutate(
     analysis_method = "method_lasso_cv_boot",
     fit = furrr::future_map2(
-      .x = gen_dat,
+      .x = gen_dat_valid,
       .y = sim_seed,
       .f = (function(d, s) {
         surv_fit_boot_sim(
-          test_dat,
+          d,
           main_seed = s * 7,
           rep = 25, # low number - but it will do for testing
         )
@@ -85,7 +90,7 @@ sim_n80 %<>%
 
 readr::write_rds(
   x = sim_n500,
-  file = here('sim', 'run_methods', 'gen_dat_one_n500_lasso_cv_boot_f100.rds')
+  file = here('sim', 'run_methods', 'gen_dat_one_n500_lasso_cv_boot_f200.rds')
 )
 
 cli::cli_alert_success(
@@ -93,6 +98,7 @@ cli::cli_alert_success(
     "Ran the CV boot method in {toc()$callback_msg}."
   )
 )
+
 
 
 

@@ -28,51 +28,8 @@ test_gen_dat <- sim_n80 %>% slice(2) %>% pull(gen_dat_valid) %>% `[[`(.,1)
 #   true_beta = test_beta,
 #   coef_dat = test_coef_dat
 # )
-
-
-
-eval_beta_bias <- function(true_beta_valid, coef_dat) {
-  beta_nonzero <- true_beta_valid[abs(true_beta_valid) > 0.001]
-  
-  coef_dat %<>%
-    filter(term %in% names(beta_nonzero)) %>%
-    select(term, estimate)
-  
-  beta_dat <- tibble(
-    term = names(beta_nonzero),
-    truth = beta_nonzero
-  )
-  
-  bias_dat <- left_join(
-    beta_dat,
-    coef_dat,
-    by = "term",
-    relationship = "one-to-one"
-  )
-  
-  if (any(is.na(bias_dat$estimate))) {
-    cli::cli_alert_warning("Some terms were not found in coef_dat")
-  }
-  
-  bias_dat %<>% mutate(diff = estimate - truth)
-  
-  bias_dat %<>%
-    summarize(
-      avg_abs_bias = mean(abs(diff), na.rm = T),
-      avg_bias = mean(diff, na.rm = T),
-      se_bias = sd(diff, na.rm = T)
-    )
-  
-  if (nrow(bias_dat) > 1) {
-    cli::cli_abort("Something went wrong, return dataframe has multiple rows.")
-  }
-  
-  return(bias_dat) # returns a dataframe, so you'll have to unpack it.
-  
-}
-
-eval_beta_bias(true_beta_valid = test_beta,
-               coef_dat = test_coef_dat)
+# eval_beta_bias(true_beta_valid = test_beta,
+#                coef_dat = test_coef_dat)
 
 # Add AUC values in:
 sim_n80 %<>%
@@ -141,9 +98,16 @@ sim_n500 %<>%
   unnest(bias_dat)
 
 
+readr::write_rds(
+  x = sim_n80,
+  file = here('sim', 'evaled_methods', 'gen_dat_one_n80_cox_uni.rds')
+)
 
-# next steps: 
-# - calculating the average bias.  
-# - Probably calculating versions of the beta and generated data coefficients that are filtered for at least one positive would be good too.
-# - adding straight ridge and lasso.  Ridge won't have AUC and that's fine.
+
+readr::write_rds(
+  x = sim_n500,
+  file = here('sim', 'evaled_methods', 'gen_dat_one_n500_cox_uni.rds')
+)
+
+
 

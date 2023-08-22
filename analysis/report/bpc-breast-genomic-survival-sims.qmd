@@ -1,0 +1,145 @@
+---
+title: "GENIE BPC simulation"
+format: html
+execute:
+  echo: false
+  include: false
+  message: false
+  warning: false
+execute-dir: project
+---
+
+
+```{r}
+library(fs); library(here); library(purrr)
+purrr::walk(.x = fs::dir_ls(here('R')), .f = source)
+```
+
+```{r}
+pal_vib <- khroma::color("vibrant")
+```
+
+
+```{r}
+n80_cox <- readr::read_rds(
+  file = here('sim', 'evaled_methods', 'gen_dat_one_n80_cox_uni.rds')
+)
+
+n500_cox <- readr::read_rds(
+    file = here('sim', 'evaled_methods', 'gen_dat_one_n500_cox_uni.rds')
+)
+
+n80_lasso_cv_boot <- readr::read_rds(
+  file = here('sim', 'evaled_methods', 'gen_dat_one_n80_lasso_cv_boot_f200.rds')
+)
+
+n500_lasso_cv_boot <- readr::read_rds(
+    file = here('sim', 'evaled_methods', 'gen_dat_one_n500_lasso_cv_boot_f200.rds')
+)
+```
+
+
+```{r}
+n80_cox %<>% mutate(n = 80)
+n500_cox %<>% mutate(n = 500)
+
+n80_lasso_cv_boot %<>% mutate(n = 80)
+n500_lasso_cv_boot %<>% mutate(n = 500)
+
+# Temporary modification to get these results to all be the same size:
+n80_cox %<>% slice(1:200)
+n500_cox %<>% slice(1:200)
+
+sim_sum_all <- bind_rows(
+  n80_cox,
+  n500_cox,
+  n80_lasso_cv_boot,
+  n500_lasso_cv_boot
+)
+```
+
+
+```{r}
+sim_sum_all %<>% select(
+  id, gen_method, n, analysis_method, auc, contains("bias")
+) %>%
+  mutate(
+    n_lab = glue("n={n}"),
+    n_lab = fct_inorder(n_lab)
+  )
+
+sim_sum_avg <- sim_sum_all %>%
+  group_by(analysis_method, n_lab) %>%
+  summarize(
+    across(
+      .cols = c(auc, avg_bias, avg_abs_bias),
+      .fns = mean
+    ),
+    .groups = "drop"
+  )
+```
+
+
+```{r}
+#| include: true
+
+gg_bias <- ggplot(
+  data = sim_sum_all,
+  aes(x = avg_bias, y = analysis_method, color = analysis_method)
+) +
+  geom_vline(xintercept = 0, linetype = "13") + 
+  geom_jitter(height = 0.3, width = 0, alpha = 0.1) +   
+  geom_point(data = sim_sum_avg,
+             size = 5, stroke = 1, alpha = 1, shape = 4) +
+  facet_wrap(vars(n_lab)) + 
+  theme_classic() + 
+  scale_color_vibrant() + 
+  theme(legend.position = "none")
+
+gg_abs_bias <- ggplot(
+  data = sim_sum_all,
+  aes(x = avg_abs_bias, y = analysis_method, color = analysis_method)
+) +
+  geom_vline(xintercept = 0, linetype = "13") + 
+  geom_jitter(height = 0.3, width = 0, alpha = 0.1) +   
+  geom_point(data = sim_sum_avg,
+             size = 5, stroke = 1, alpha = 1, shape = 4) +
+  facet_wrap(vars(n_lab)) + 
+  theme_classic() + 
+  scale_color_vibrant() + 
+  theme(legend.position = "none")
+
+gg_abs_bias_auc <- ggplot(data = sim_sum_all,
+       aes(x = auc, y = avg_abs_bias, color = analysis_method)) + 
+  geom_point(alpha = 0.05) +   
+  geom_point(data = sim_sum_avg,
+             size = 5, stroke = 1, alpha = 1, shape = 4) +
+  facet_wrap(vars(n_lab)) + 
+  theme_bw() + 
+  scale_color_vibrant() +
+  theme(
+    legend.position = "bottom"
+  )
+```
+
+
+```{r}
+#| include: true
+#| fig-height: 3
+
+gg_bias
+```
+
+```{r}
+#| include: true
+#| fig-height: 3
+
+gg_abs_bias
+```
+
+
+```{r}
+#| include: true
+gg_abs_bias_auc
+```
+
