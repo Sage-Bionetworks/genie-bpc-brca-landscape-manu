@@ -28,6 +28,10 @@ source(here('analysis', 'script', 'eval_lasso_5fcv.R'))
 source(here('analysis', 'script', 'run_method_lasso_cv_boot.R'))
 source(here('analysis', 'script', 'eval_lasso_cv_boot.R'))
 
+
+# Combine all the simluation evaluations for display
+source(here('analysis', 'script', 'combined_eva
+
 source(here('analysis', 'script', 'upload_sim_data_backup.R'))
 
 

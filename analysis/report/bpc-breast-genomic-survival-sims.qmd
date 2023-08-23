@@ -1,6 +1,6 @@
 ---
 title: "GENIE BPC simulation"
-format: html
+format: beamer
 execute:
   echo: false
   include: false
@@ -21,21 +21,29 @@ pal_vib <- khroma::color("vibrant")
 
 
 ```{r}
-n80_cox <- readr::read_rds(
-  file = here('sim', 'evaled_methods', 'gen_dat_one_n80_cox_uni.rds')
+
+read_wrap <- function(f) {
+  readr::read_rds(
+    here(
+      'sim', 'evaled_methods', f
+    )
+  )
+}
+
+n80_cox <- read_wrap('gen_dat_one_n80_cox_uni.rds')
+n500_cox <- read_wrap('gen_dat_one_n500_cox_uni.rds')
+
+n80_lasso_5fcv <- read_wrap('gen_dat_one_n80_lasso_5fcv.rds')
+n500_lasso_5fcv <- read_wrap('gen_dat_one_n500_lasso_5fcv.rds')
+
+n80_lasso_cv_boot <- read_wrap(
+  'gen_dat_one_n80_lasso_cv_boot_f200.rds' 
+)
+n500_lasso_cv_boot <- read_wrap(
+  'gen_dat_one_n80_lasso_cv_boot_f200.rds' 
 )
 
-n500_cox <- readr::read_rds(
-    file = here('sim', 'evaled_methods', 'gen_dat_one_n500_cox_uni.rds')
-)
 
-n80_lasso_cv_boot <- readr::read_rds(
-  file = here('sim', 'evaled_methods', 'gen_dat_one_n80_lasso_cv_boot_f200.rds')
-)
-
-n500_lasso_cv_boot <- readr::read_rds(
-    file = here('sim', 'evaled_methods', 'gen_dat_one_n500_lasso_cv_boot_f200.rds')
-)
 ```
 
 
@@ -43,12 +51,18 @@ n500_lasso_cv_boot <- readr::read_rds(
 n80_cox %<>% mutate(n = 80)
 n500_cox %<>% mutate(n = 500)
 
+n80_lasso_5fcv %<>% mutate(n = 80)
+n500_lasso_5fcv %<>% mutate(n = 500)
+
 n80_lasso_cv_boot %<>% mutate(n = 80)
 n500_lasso_cv_boot %<>% mutate(n = 500)
 
 # Temporary modification to get these results to all be the same size:
 n80_cox %<>% slice(1:200)
 n500_cox %<>% slice(1:200)
+n80_lasso_5fcv %<>% slice(1:200)
+n500_lasso_5fcv %<>% slice(1:200)
+
 
 sim_sum_all <- bind_rows(
   n80_cox,
@@ -110,7 +124,7 @@ gg_abs_bias <- ggplot(
   theme(legend.position = "none")
 
 gg_abs_bias_auc <- ggplot(data = sim_sum_all,
-       aes(x = auc, y = avg_abs_bias, color = analysis_method)) + 
+                          aes(x = auc, y = avg_abs_bias, color = analysis_method)) + 
   geom_point(alpha = 0.05) +   
   geom_point(data = sim_sum_avg,
              size = 5, stroke = 1, alpha = 1, shape = 4) +

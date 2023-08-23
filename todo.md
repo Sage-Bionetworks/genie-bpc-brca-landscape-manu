@@ -2,6 +2,10 @@ Catastrophic:
 
 - The surv_fit_dmet_wrap() function was using dft_dmet_os, which will be detrimental for the subset analyses.
 
+For Aug 22:
+- Slides explaining the simulation.
+- Finish off the lasso run eval functions.
+- 
 
 Todo:
 
