@@ -133,3 +133,17 @@ readr::write_rds(
 )
 
 
+# A good test case on bias:
+# test_beta <- sim_n500 %>% slice(1) %>% pull(beta_valid) %>% `[[`(.,1)
+# test_beta <- test_beta[abs(test_beta) > 0.0000001] 
+# test_coef_est <- sim_n500 %>% slice(1) %>% pull(coef_est) %>% `[[`(.,1)
+# test_coef_est %>%
+#   filter(term %in% names(test_beta)) %>%
+#   mutate(truth = test_beta,
+#          diff = estimate - truth) %>%
+#   summarize(
+#     abs_bias = mean(abs(diff)),
+#     bias = mean(diff)
+#   )
+# # should match:
+# sim_n500 %>% slice(1) %>% select(contains("bias"))

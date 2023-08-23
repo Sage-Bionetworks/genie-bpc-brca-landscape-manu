@@ -5,7 +5,7 @@ Catastrophic:
 For Aug 22:
 - Slides explaining the simulation.
 - Finish off the lasso run eval functions.
-- 
+- Check the absolute bias calculation on lasso - seems too good to be true.
 
 Todo:
 

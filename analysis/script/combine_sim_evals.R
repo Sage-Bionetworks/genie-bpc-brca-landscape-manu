@@ -47,6 +47,55 @@ n500_lasso_5fcv %<>% slice(1:200)
 sim_sum_all <- bind_rows(
   n80_cox,
   n500_cox,
+  n80_lasso_5fcv,
+  n500_lasso_5fcv,
   n80_lasso_cv_boot,
   n500_lasso_cv_boot
+)
+
+
+lev_meth <- c(
+  "univar. Cox models",
+  "CV Lasso (once)",
+  "CV Lasso (boot)"
+)
+
+sim_sum_all %<>% select(
+  id, gen_method, n, analysis_method, auc, contains("bias")
+) %>%
+  mutate(
+    n_lab = glue("n={n}"),
+    n_lab = fct_inorder(n_lab)
+  ) %>%
+  mutate(
+    analysis_method_f = case_when(
+      analysis_method %in% "method_univar_cox" ~ lev_meth[1],
+      analysis_method %in% "method_lasso_5fcv" ~ lev_meth[2],
+      analysis_method %in% "method_lasso_cv_boot" ~ lev_meth[3]
+    ),
+    analysis_method_f = factor(
+      analysis_method_f,
+      levels = lev_meth
+    )
+  )
+    
+
+sim_sum_avg <- sim_sum_all %>%
+  group_by(analysis_method_f, n_lab) %>%
+  summarize(
+    across(
+      .cols = c(auc, avg_bias, avg_abs_bias),
+      .fns = mean
+    ),
+    .groups = "drop"
+  )
+
+readr::write_rds(
+  x = sim_sum_all,
+  file = here('sim', 'combined_evals', 'sim_sum_all.rds')
+)
+
+readr::write_rds(
+  x = sim_sum_avg,
+  file = here('sim', 'combined_evals', 'sim_sum_avg.rds')
 )
