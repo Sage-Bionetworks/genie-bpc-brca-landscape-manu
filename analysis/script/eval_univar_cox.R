@@ -17,85 +17,90 @@ sim_n500 <- readr::read_rds(
 # Example of running one time:
 test_beta <- sim_n80 %>% slice(2) %>% pull(beta_valid) %>% unlist(.)
 test_coef_dat <- sim_n80 %>% slice(2) %>% pull(coef_est) %>% `[[`(.,1)
-test_gen_dat <- sim_n80 %>% slice(2) %>% pull(gen_dat_valid) %>% `[[`(.,1)
-# 
-# split_decision_values(
-#   true_beta = test_beta,
-#   coef_dat = test_coef_dat,
-#   d_name = "p.value"
-# )
-# eval_beta_auc_pval(
-#   true_beta = test_beta,
-#   coef_dat = test_coef_dat
-# )
-# eval_beta_bias(true_beta_valid = test_beta,
-#                coef_dat = test_coef_dat)
+# test_gen_dat <- sim_n80 %>% slice(2) %>% pull(gen_dat_valid) %>% `[[`(.,1)
 
-# Add AUC values in:
-sim_n80 %<>%
-  mutate(
-    auc = purrr::map2_dbl(
-      .x = beta,
-      .y = coef_est,
-      .f = (function(b, c) {
-        eval_beta_auc_pval(
-          true_beta = b,
-          coef_dat = c,
-          return_type = "auc"
-        )
-      })
+
+eval_wrapper_cox <- function(sim_data) {
+  # Add auc:
+  sim_data %<>%
+    mutate(
+      auc = purrr::map2_dbl(
+        .x = beta_valid,
+        .y = coef_est,
+        .f = (function(b, c) {
+          eval_beta_auc_pval(
+            true_beta = b,
+            coef_dat = c,
+            return_type = "auc"
+          )
+        })
+      )
     )
-  )
-
-# add several bias metrics in:
-sim_n80 %<>%
-  mutate(
-    bias_dat = purrr::map2(
-      .x = beta_valid,
-      .y = coef_est,
-      .f = (function(b, c) {
-        eval_beta_bias(
-          true_beta_valid = b,
-          coef_dat = c
-        )
-      })
+  
+  # Add sensitivity at the traditional p = 0.05
+  sim_data %<>%
+    mutate(
+      sens_thresh = "p=0.05",
+      sens_at_thresh = purrr::map2_dbl(
+        .x = beta_valid,
+        .y = coef_est,
+        .f = (function(b, c) {
+          eval_sens_at_thresh(
+            true_beta = b,
+            coef_dat = c,
+            thresh_param = "p.value",
+            thresh_to_test = 0.05,
+            low_thresh_good = T
+          )
+        })
+      )
     )
-  ) %>%
-  unnest(bias_dat)
-
-
-
-sim_n500 %<>%
-  mutate(
-    analysis_method = "method_univar_cox",
-    auc = purrr::map2_dbl(
-      .x = beta,
-      .y = coef_est,
-      .f = (function(b, c) {
-        eval_beta_auc_pval(
-          true_beta = b,
-          coef_dat = c,
-          return_type = "auc"
-        )
-      })
+  
+  # Add specificity at the traditional p = 0.05
+  sim_data %<>%
+    mutate(
+      sens_thresh = "p=0.05",
+      sens_at_thresh = purrr::map2_dbl(
+        .x = beta_valid,
+        .y = coef_est,
+        .f = (function(b, c) {
+          eval_spec_at_thresh(
+            true_beta = b,
+            coef_dat = c,
+            thresh_param = "p.value",
+            thresh_to_test = 0.05,
+            low_thresh_good = T
+          )
+        })
+      )
     )
-  )
+  
+  
+  # add several bias metrics in:
+  sim_data %<>%
+    mutate(
+      bias_dat = purrr::map2(
+        .x = beta_valid,
+        .y = coef_est,
+        .f = (function(b, c) {
+          eval_beta_bias(
+            true_beta_valid = b,
+            coef_dat = c
+          )
+        })
+      )
+    ) %>%
+    unnest(bias_dat)
+  
+  return(sim_data)
+  
+}
+  
+# Where the actual work is done:
+sim_n80 %<>% eval_wrapper_cox(.)
+sim_n500 %<>% eval_wrapper_cox(.)
+    
 
-# add several bias metrics in:
-sim_n500 %<>%
-  mutate(
-    bias_dat = purrr::map2(
-      .x = beta_valid,
-      .y = coef_est,
-      .f = (function(b, c) {
-        eval_beta_bias(
-          true_beta_valid = b,
-          coef_dat = c
-        )
-      })
-    )
-  ) %>%
-  unnest(bias_dat)
 
 
 readr::write_rds(

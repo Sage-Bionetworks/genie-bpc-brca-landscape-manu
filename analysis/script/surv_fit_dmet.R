@@ -1,7 +1,7 @@
 # Description: Fit the predictors of survival from distant metastasis.
 # Additionally, fit these for hormone receptor subtypes.
 
-n_boot <- 3
+n_boot <- 200
 boot_draw_seed <- 102039
 
 library(magrittr)
