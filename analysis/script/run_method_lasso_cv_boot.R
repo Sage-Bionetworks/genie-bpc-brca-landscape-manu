@@ -14,7 +14,7 @@ sim_n500 <- readr::read_rds(
   here('sim', 'gen_data', 'gen_dat_one_n500.rds')
 )
 
-
+future::plan(strategy = multisession, workers = 6) 
 # time note:  rep = 25, first 200 rows took about 4.8 hours on 
 #   a personal computer running 6 threads for the n=80 + n=500.
 # Should be able to run with all 1000 in about a day with the same number of reps.
@@ -23,9 +23,9 @@ tic()
 
 
 
-cli::cli_alert_danger("lasso_cv_boot only running the first 200 samples for time - fix when ready")
-sim_n80 %<>% slice(1:200)
-sim_n500 %<>% slice(1:200)
+# cli::cli_alert_danger("lasso_cv_boot only running the first 200 samples for time - fix when ready")
+# sim_n80 %<>% slice(1:200)
+# sim_n500 %<>% slice(1:200)
 
 # test_dat <- sim_n500 %>% slice(1) %>% pull(gen_dat_valid) %>% `[[`(.,1) 
 # 
@@ -68,7 +68,7 @@ sim_n80 %<>%
 
 readr::write_rds(
   x = sim_n80,
-  file = here('sim', 'run_methods', 'gen_dat_one_n80_lasso_cv_boot_f200.rds')
+  file = here('sim', 'run_methods', 'gen_dat_one_n80_lasso_cv_boot.rds')
 )
 
 sim_n500 %<>%
@@ -90,7 +90,7 @@ sim_n500 %<>%
 
 readr::write_rds(
   x = sim_n500,
-  file = here('sim', 'run_methods', 'gen_dat_one_n500_lasso_cv_boot_f200.rds')
+  file = here('sim', 'run_methods', 'gen_dat_one_n500_lasso_cv_boot.rds')
 )
 
 cli::cli_alert_success(

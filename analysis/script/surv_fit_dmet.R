@@ -1,7 +1,7 @@
 # Description: Fit the predictors of survival from distant metastasis.
 # Additionally, fit these for hormone receptor subtypes.
 
-n_boot <- 200
+n_boot <- 1000
 boot_draw_seed <- 102039
 
 library(magrittr)
@@ -94,26 +94,26 @@ cli::cli_progress_message(
   paste0(
    vec_time_elapsed$callback_msg,
     " to run dmet boots with ",
-    n_boots,
+    n_boot,
     " repetitions."
   )
 )
 
 # Save all the fitted models as RDS:
-# readr::write_rds(
-#   x = boot_models_dmet_all,
-#   file = here('data', 'survival', 'fit_outputs', 'fit_dmet_all.rds')
-# )
-# readr::write_rds(
-#   x = boot_models_dmet_trip_neg,
-#   file = here('data', 'survival', 'fit_outputs', 'fit_dmet_trip_neg.rds')
-# )
-# readr::write_rds(
-#   x = boot_models_dmet_hr_pos_her2_neg,
-#   file = here('data', 'survival', 'fit_outputs', 'fit_dmet_hr_pos_her2_neg.rds')
-# )
-# readr::write_rds(
-#   x = boot_models_dmet_her2_pos,
-#   file = here('data', 'survival', 'fit_outputs', 'fit_dmet_her2_pos.rds')
-# )
+readr::write_rds(
+  x = boot_models_dmet_all,
+  file = here('data', 'survival', 'fit_outputs', 'fit_dmet_all.rds')
+)
+readr::write_rds(
+  x = boot_models_dmet_trip_neg,
+  file = here('data', 'survival', 'fit_outputs', 'fit_dmet_trip_neg.rds')
+)
+readr::write_rds(
+  x = boot_models_dmet_hr_pos_her2_neg,
+  file = here('data', 'survival', 'fit_outputs', 'fit_dmet_hr_pos_her2_neg.rds')
+)
+readr::write_rds(
+  x = boot_models_dmet_her2_pos,
+  file = here('data', 'survival', 'fit_outputs', 'fit_dmet_her2_pos.rds')
+)
 

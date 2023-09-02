@@ -15,7 +15,7 @@ plot_one_sim_metric <- function(
   ) +
     geom_vline(xintercept = 0, linetype = "13") + 
     geom_boxplot(outlier.shape = NA, coef = 0) + 
-    geom_jitter(height = 0.3, width = 0, alpha = 0.1) +   
+    geom_jitter(height = 0.2, width = 0, alpha = 0.5, size = 0.25) +   
     geom_point(data = dat_sim_avg,
                size = 3, stroke = 1, alpha = 1, shape = 20,
                color = "gray50") +

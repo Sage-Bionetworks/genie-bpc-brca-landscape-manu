@@ -16,6 +16,7 @@ sim_n500 <- readr::read_rds(
   here('sim', 'run_methods', 'gen_dat_one_n500_lasso_cv_boot_f200.rds')
 )
 
+STABILITY_THRESH <- 0.2
 
 # sim_n80 %>% slice(1) %>% pull(coef_est) %>% `[[`(.,1)
 
@@ -41,85 +42,103 @@ if (!("coef_est" %in% colnames(sim_n80))) {
   
 }
 
+# test_beta <- sim_n80 %>% slice(1) %>% pull(beta) %>% `[[`(.,1)
+# test_coef_dat <- sim_n80 %>% slice(1) %>% pull(coef_est) %>% `[[`(.,1)
+# eval_sens_at_thresh(
+#   true_beta = test_beta,
+#   coef_dat = test_coef_dat,
+#   thresh_param = "stability",
+#   thresh_to_test = 0.5,
+#   low_thresh_good = F
+# )
+# eval_spec_at_thresh(
+#   true_beta = test_beta,
+#   coef_dat = test_coef_dat,
+#   thresh_param = "stability",
+#   thresh_to_test = 0.5,
+#   low_thresh_good = F
+# )
 
 
 ###########################
 # Add in AUC calculation: #
 ###########################
 
-sim_n80 %<>%
-  mutate(
-    auc = purrr::map2_dbl(
-      .x = beta_valid,
-      .y = coef_est,
-      .f = (function(b, c) {
-        eval_beta_auc_stability(
-          true_beta = b,
-          coef_dat = c,
-          return_type = "auc"
-        )
-      })
+eval_wrap_lasso_cv_boot <- function(sim_data) {
+  sim_data %<>%
+    mutate(
+      auc = purrr::map2_dbl(
+        .x = beta_valid,
+        .y = coef_est,
+        .f = (function(b, c) {
+          eval_beta_auc_stability(
+            true_beta = b,
+            coef_dat = c,
+            return_type = "auc"
+          )
+        })
+      )
     )
-  )
-
-sim_n500 %<>%
-  mutate(
-    auc = purrr::map2_dbl(
-      .x = beta_valid,
-      .y = coef_est,
-      .f = (function(b, c) {
-        eval_beta_auc_stability(
-          true_beta = b,
-          coef_dat = c,
-          return_type = "auc"
-        )
-      })
+  
+  sim_data %<>%
+    # add several bias metrics in:
+    mutate(
+      bias_dat = purrr::map2(
+        .x = beta_valid,
+        .y = coef_est,
+        .f = (function(b, c) {
+          eval_beta_bias(
+            true_beta_valid = b,
+            coef_dat = c
+          )
+        })
+      )
+    ) %>%
+    unnest(bias_dat)
+  
+  sim_data %<>%
+    mutate(
+      spec_thresh = paste0("stability=",STABILITY_THRESH),
+      spec_at_thresh = purrr::map2_dbl(
+        .x = beta_valid,
+        .y = coef_est,
+        .f = (function(b, d) {
+          eval_spec_at_thresh(
+            true_beta = b,
+            coef_dat = d,
+            thresh_param = "stability",
+            thresh_to_test = STABILITY_THRESH,
+            low_thresh_good = F
+          )
+        })
+      )
     )
-  )
-
-
-
-# test_beta <- sim_n80 %>% slice(1) %>% pull(beta_valid) %>% `[[`(.,1) 
-# test_coef <- sim_n80 %>% slice(1) %>% pull(coef_est) %>% `[[`(.,1) 
-# 
-# setdiff(names(test_beta), test_coef$term)
-# setdiff(test_coef$term, names(test_beta))
-
-
-############################
-# Add in bias calculation: #
-############################
-sim_n80 %<>%
-  # add several bias metrics in:
-  mutate(
-    bias_dat = purrr::map2(
-      .x = beta_valid,
-      .y = coef_est,
-      .f = (function(b, c) {
-        eval_beta_bias(
-          true_beta_valid = b,
-          coef_dat = c
-        )
-      })
+  
+  sim_data %<>%
+    mutate(
+      sens_at_thresh = purrr::map2_dbl(
+        .x = beta_valid,
+        .y = coef_est,
+        .f = (function(b, d) {
+          eval_sens_at_thresh(
+            true_beta = b,
+            coef_dat = d,
+            thresh_param = "stability",
+            thresh_to_test = STABILITY_THRESH,
+            low_thresh_good = F
+          )
+        })
+      )
     )
-  ) %>%
-  unnest(bias_dat)
+  
+  return(sim_data)
+  
+} 
+  
 
-sim_n500 %<>%
-  # add several bias metrics in:
-  mutate(
-    bias_dat = purrr::map2(
-      .x = beta_valid,
-      .y = coef_est,
-      .f = (function(b, c) {
-        eval_beta_bias(
-          true_beta_valid = b,
-          coef_dat = c
-        )
-      })
-    )
-  ) %>%
-  unnest(bias_dat)
+sim_n80 %<>% eval_wrap_lasso_cv_boot(.)
+sim_n500 %<>% eval_wrap_lasso_cv_boot(.)
+
 
 
 readr::write_rds(

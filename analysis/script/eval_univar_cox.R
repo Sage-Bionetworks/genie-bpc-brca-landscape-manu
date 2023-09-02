@@ -40,12 +40,12 @@ eval_wrapper_cox <- function(sim_data) {
   # Add sensitivity at the traditional p = 0.05
   sim_data %<>%
     mutate(
-      sens_thresh = "p=0.05",
-      sens_at_thresh = purrr::map2_dbl(
+      spec_thresh = "p=0.05",
+      spec_at_thresh = purrr::map2_dbl(
         .x = beta_valid,
         .y = coef_est,
         .f = (function(b, c) {
-          eval_sens_at_thresh(
+          eval_spec_at_thresh(
             true_beta = b,
             coef_dat = c,
             thresh_param = "p.value",
@@ -64,7 +64,7 @@ eval_wrapper_cox <- function(sim_data) {
         .x = beta_valid,
         .y = coef_est,
         .f = (function(b, c) {
-          eval_spec_at_thresh(
+          eval_sens_at_thresh(
             true_beta = b,
             coef_dat = c,
             thresh_param = "p.value",

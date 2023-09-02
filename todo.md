@@ -17,6 +17,7 @@ Todo:
   date which is after their death or loss to followup.  Why is this?  Does
   this indeed challenge our assumptions?
 - Update all reports to read in the distinctly filtered survival datasets.
+- Fix the 5fcv method to return a coef_est with 'estimate' instead of 'log_hr' (just the names are off)
 
 Curiousities:
 - Are GENIE-MSK-P-0017706-T02-IM6 and GENIE-MSK-P-0017706-T01-IM6 totally identical?

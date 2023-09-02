@@ -61,7 +61,10 @@ lev_meth <- c(
 )
 
 sim_sum_all %<>% select(
-  id, gen_method, n, analysis_method, auc, contains("bias")
+  id, gen_method, n, analysis_method, auc, 
+  contains("bias"),
+  contains("sens"),
+  contains("spec")
 ) %>%
   mutate(
     n_lab = glue("n={n}"),
@@ -84,7 +87,7 @@ sim_sum_avg <- sim_sum_all %>%
   group_by(analysis_method_f, n_lab) %>%
   summarize(
     across(
-      .cols = c(auc, avg_bias, avg_abs_bias),
+      .cols = c(auc, avg_bias, avg_abs_bias, sens_at_thresh, spec_at_thresh),
       .fns = mean
     ),
     .groups = "drop"

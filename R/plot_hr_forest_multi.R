@@ -9,7 +9,7 @@ plot_hr_forest_multi <- function(
   
   
   gg <- ggplot(coef_dat,
-               aes(x = hr, y = feature)) + 
+               aes(x = hr, y = term)) + 
     geom_vline(xintercept = 1, color = "#bb5566", 
                linewidth = 2, alpha = 0.5) + 
     geom_jitter(aes(color = .data[[strat_var]]), width = 0.1, height = 0,
