@@ -29,6 +29,13 @@ source(here('analysis', 'script', 'save_rds_msk_gene.R'))
 source(here('analysis', 'script', 'combine_gene_feat.R'))
 source(here('analysis', 'script', 'surv_prep_dmet.R'))
 source(here('analysis', 'script', 'surv_fit_dmet.R'))
+source(here('analysis', 'script', 'surv_process_results_dmet.R'))
+rmarkdown::render(
+  input = here('analysis', 'report', 'brca_regimens.Rmd'),
+  output_file = '01-bpc-brca-regimen-overview.html',
+  output_dir = here('output')
+)
+
 
 
 # source(here('analysis', 'scripts', 'upload_outputs_synapse.R'))
