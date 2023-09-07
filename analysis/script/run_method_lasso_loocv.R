@@ -74,6 +74,7 @@ sim_n500 %<>%
       .progress = T
     )
   )
+
 readr::write_rds(
   x = sim_n500,
   file = here(
