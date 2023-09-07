@@ -1,7 +1,7 @@
 # Description: Fit the predictors of survival from distant metastasis.
 # Additionally, fit these for hormone receptor subtypes.
 
-n_boot <- 3
+n_boot <- 300
 boot_draw_seed <- 102039
 
 library(magrittr)
@@ -19,6 +19,8 @@ library(fastDummies)
 library(tictoc)
 
 purrr::walk(.x = fs::dir_ls('R'), .f = source)
+
+future::plan(strategy = multisession, workers = 6) 
 
 tic()
 
@@ -60,117 +62,147 @@ dft_dmet_surv_her2_pos <- readr::read_rds(
 
 
 
-
-#' @description Big wrapper that creates the surv object, fits the survival,
-#'   returns the datasets. Because the model is really specific to this one use
-#'   case, we didn't put this wrapper into the /R directory.
-#' @param dat A dataset with one row per {record_id}.
-#' @param boot_rep The number of bootstrap resamples to do.
-#' @param main_seed The seed used to draw the bootstrap seeds.
-#' @param additional_features Any features to add to the X matrix.
-surv_fit_dmet_wrap <- function(dat, boot_rep, main_seed, 
-                               additional_features = character(0)) {
-  y_dmet_os <- with(
-    dat,
-    Surv(
-      time = tt_cpt_dmet_yrs_pos,
-      time2 = tt_os_dmet_yrs,
-      event = os_dx_status
-    )
-  )
-  
-  x_dmet_os <- dat %>%
-    # just to get the output in readable order we do an alphabet sort first:
-    select(order(colnames(dat))) %>%
-    select(
-      matches("_mut$"),
-      matches("_cna$"),
-      matches("_fus$"),
-      age_dx_c,
-      stage_dx_iv_num,
-      birth_year_c,
-      white,
-      hispanic,
-      all_of(additional_features)
-    ) %>%
-    as.matrix(.)
-  
-  set.seed(main_seed) # for drawing each boot seed below
-  dft_boot_dmet_os <- tibble(boot_ind = 1:boot_rep)%>%
-    mutate(boot_seed = sample.int(n = 10^7, size = n()))
-  
-  rtn <- dft_boot_dmet_os %>%
-    mutate(
-      fit = purrr::map(
-        .x = boot_seed,
-        .f = (function(x) {
-          fit_boot_cv_ltrc_lasso(
-            x_mat = x_dmet_os,
-            y_df = dft_dmet_surv,
-            y_t = "tt_cpt_dmet_yrs_pos",
-            y_t2 = "tt_os_dmet_yrs",
-            y_e = "os_dx_status",
-            boot_seed = x,
-          )
-        })
-      )
-    )
-  
-  return(rtn)
-}
+# These are the default adjustments - but I like being explicit.
+vec_dmet_surv_confounders <- c("age_dx_c", 
+                               "stage_dx_iv_num",
+                               "birth_year_c",
+                               "white",
+                               "hispanic")
 
 boot_models_dmet_all <- surv_fit_dmet_wrap(
   dat = dft_dmet_surv_all,
   boot_rep = n_boot, 
   main_seed = boot_draw_seed,
-  additional_features = c("bca_her2_pos", "bca_trip_neg", "bca_nc_nr")
+  additional_features = c(
+    "bca_her2_pos", "bca_trip_neg", "bca_nc_nr",
+    vec_dmet_surv_confounders
+  )
   # therefore, reference group is HR+/HER2-
 ) 
 
 boot_models_dmet_trip_neg <- surv_fit_dmet_wrap(
   dat = dft_dmet_surv_trip_neg,
   boot_rep = n_boot, 
-  main_seed = boot_draw_seed
+  main_seed = boot_draw_seed,
+  additional_features = vec_dmet_surv_confounders
 ) 
 
 boot_models_dmet_hr_pos_her2_neg <- surv_fit_dmet_wrap(
   dat = dft_dmet_surv_hr_pos_her2_neg,
   boot_rep = n_boot, 
-  main_seed = boot_draw_seed
+  main_seed = boot_draw_seed,
+  additional_features = vec_dmet_surv_confounders
 ) 
 
 boot_models_dmet_her2_pos <- surv_fit_dmet_wrap(
   dat = dft_dmet_surv_her2_pos,
   boot_rep = n_boot, 
-  main_seed = boot_draw_seed + 1 # unknown error.
+  main_seed = boot_draw_seed,
+  additional_features = vec_dmet_surv_confounders
+) 
+
+
+
+
+# Save all the fitted models as RDS:
+readr::write_rds(
+  x = boot_models_dmet_all,
+  file = here('data', 'survival', 'fit_outputs', 'fit_dmet_all.rds')
+)
+readr::write_rds(
+  x = boot_models_dmet_trip_neg,
+  file = here('data', 'survival', 'fit_outputs', 'fit_dmet_trip_neg.rds')
+)
+readr::write_rds(
+  x = boot_models_dmet_hr_pos_her2_neg,
+  file = here('data', 'survival', 'fit_outputs', 'fit_dmet_hr_pos_her2_neg.rds')
+)
+readr::write_rds(
+  x = boot_models_dmet_her2_pos,
+  file = here('data', 'survival', 'fit_outputs', 'fit_dmet_her2_pos.rds')
+)
+
+
+
+
+
+
+
+
+#####################################
+# Repeat for confounder-free models #
+#####################################
+
+boot_models_dmet_all_no_conf <- surv_fit_dmet_wrap(
+  dat = dft_dmet_surv_all,
+  boot_rep = n_boot, 
+  main_seed = boot_draw_seed,
+  additional_features = c(
+    "bca_her2_pos", "bca_trip_neg", "bca_nc_nr"
+  )
+) 
+
+boot_models_dmet_trip_neg_no_conf <- surv_fit_dmet_wrap(
+  dat = dft_dmet_surv_trip_neg,
+  boot_rep = n_boot, 
+  main_seed = boot_draw_seed,
+  additional_features = character(0)
+) 
+
+boot_models_dmet_hr_pos_her2_neg_no_conf <- surv_fit_dmet_wrap(
+  dat = dft_dmet_surv_hr_pos_her2_neg,
+  boot_rep = n_boot, 
+  main_seed = boot_draw_seed,
+  additional_features = character(0)
+) 
+
+boot_models_dmet_her2_pos_no_conf <- surv_fit_dmet_wrap(
+  dat = dft_dmet_surv_her2_pos,
+  boot_rep = n_boot, 
+  main_seed = boot_draw_seed,
+  additional_features = character(0)
 ) 
 
 
 vec_time_elapsed <- toc()
 cli::cli_progress_message(
   paste0(
-   vec_time_elapsed$callback_msg,
+    vec_time_elapsed$callback_msg,
     " to run dmet boots with ",
-    n_boots,
+    n_boot,
     " repetitions."
   )
 )
 
 # Save all the fitted models as RDS:
-# readr::write_rds(
-#   x = boot_models_dmet_all,
-#   file = here('data', 'survival', 'fit_outputs', 'fit_dmet_all.rds')
-# )
-# readr::write_rds(
-#   x = boot_models_dmet_trip_neg,
-#   file = here('data', 'survival', 'fit_outputs', 'fit_dmet_trip_neg.rds')
-# )
-# readr::write_rds(
-#   x = boot_models_dmet_hr_pos_her2_neg,
-#   file = here('data', 'survival', 'fit_outputs', 'fit_dmet_hr_pos_her2_neg.rds')
-# )
-# readr::write_rds(
-#   x = boot_models_dmet_her2_pos,
-#   file = here('data', 'survival', 'fit_outputs', 'fit_dmet_her2_pos.rds')
-# )
+readr::write_rds(
+  x = boot_models_dmet_all_no_conf,
+  file = here('data', 'survival', 'fit_outputs', 
+              'fit_dmet_all_no_conf.rds')
+)
+readr::write_rds(
+  x = boot_models_dmet_trip_neg_no_conf,
+  file = here('data', 'survival', 'fit_outputs', 
+              'fit_dmet_trip_neg_no_conf.rds')
+)
+readr::write_rds(
+  x = boot_models_dmet_hr_pos_her2_neg_no_conf,
+  file = here('data', 'survival', 'fit_outputs',
+              'fit_dmet_hr_pos_her2_neg_no_conf.rds')
+)
+readr::write_rds(
+  x = boot_models_dmet_her2_pos_no_conf,
+  file = here('data', 'survival', 'fit_outputs', 
+              'fit_dmet_her2_pos_no_conf.rds')
+)
 
+
+vec_time_elapsed <- toc()
+cli::cli_alert_success(
+  paste0(
+    vec_time_elapsed$callback_msg,
+    " to run dmet boots (+ no confounder models) with ",
+    n_boot,
+    " repetitions."
+  )
+)

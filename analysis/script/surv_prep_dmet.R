@@ -49,7 +49,9 @@ surv_cohort_track_help <- function(dat, state, var = "bca_subtype_f_simple") {
     )
 }
 
-dft_surv_consort <- surv_cohort_track_help(dft_ca_ind, state = "start")
+dft_surv_consort <- surv_cohort_track_help(
+  dft_ca_ind, state = "start"
+)
 
 
 # dft_cpt %>%
@@ -142,7 +144,7 @@ add_specific_dmet_vars <- function(dat) {
 
 # Do the data processing for all people first:
 dft_gene_comb_all <- combine_cpt_gene_feat(
-  dat_gene_feat = dft_gene_feat_dmet,
+  dat_gene_feat = dft_gene_feat,
   dat_cpt = dft_cpt_dmet
 )
 
@@ -157,12 +159,16 @@ dft_surv_consort <- bind_rows(
   surv_cohort_track_help(dat = dft_dmet_surv_all, state = "dmet")
 )
 
+# Annoying limitation:
 dft_dmet_surv_all %<>%
   filter(!(tt_cpt_dmet_yrs > tt_os_dmet_yrs))
 
 dft_surv_consort <- bind_rows(
   dft_surv_consort,
-  surv_cohort_track_help(dat = dft_dmet_surv_all, state = "dmet, CPT <= OS follow-up")
+  surv_cohort_track_help(
+    dat = dft_dmet_surv_all, 
+    state = "dmet, CPT <= OS follow-up"
+  )
 ) 
 
 dft_surv_consort %<>%
@@ -183,21 +189,19 @@ readr::write_rds(
 # Before we filter the genes for variance/proportions, make the subgroup datasets:
 dft_dmet_surv_trip_neg <- dft_dmet_surv_all %>%
   filter(bca_subtype_f_simple %in% "Triple Negative") %>%
-  filter_gene_features(.)
+  filter_gene_features(., prop_filter = 0.01)
 
 dft_dmet_surv_hr_pos_her2_neg <- dft_dmet_surv_all %>%
   filter(bca_subtype_f_simple %in% "HR+, HER2-") %>%
-  filter_gene_features(.)
+  filter_gene_features(., prop_filter = 0.01)
 
 dft_dmet_surv_her2_pos <- dft_dmet_surv_all %>%
   filter(bca_subtype_f_simple %in% "HER2+") %>%
-  filter_gene_features(.)
+  filter_gene_features(., prop_filter = 0.01)
 
 # Now we can filter the overall data as well:
-dft_dmet_surv_all %<>% filter_gene_features(.)
-
-# Note: If you decided to require both 0.5% in the overall cohort and 0.5% in the
-#   subgroup, you could move the filter on "_all" to be before the subgroup ones.
+dft_dmet_surv_all %<>% 
+  filter_gene_features(., 0.01)
 
  
 
@@ -206,14 +210,17 @@ readr::write_rds(
   x = dft_dmet_surv_all,
   file = here('data', 'survival', 'prepared_data', 'surv_dmet_all.rds')
 )
+
 readr::write_rds(
   x = dft_dmet_surv_trip_neg,
   file = here('data', 'survival', 'prepared_data', 'surv_dmet_trip_neg.rds')
 )
+
 readr::write_rds(
   x = dft_dmet_surv_hr_pos_her2_neg,
   file = here('data', 'survival', 'prepared_data', 'surv_dmet_hr_pos_her2_neg.rds')
 )
+
 readr::write_rds(
   x = dft_dmet_surv_her2_pos,
   file = here('data', 'survival', 'prepared_data', 'surv_dmet_her2_pos.rds')

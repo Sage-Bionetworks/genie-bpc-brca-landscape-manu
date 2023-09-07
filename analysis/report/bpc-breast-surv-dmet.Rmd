@@ -1,7 +1,7 @@
 ---
 title: "Survival from metastasis"
 output: beamer_presentation
-date: "2023-07-24"
+date: "2023-09-07"
 editor_options: 
   chunk_output_type: console
 ---
@@ -12,32 +12,7 @@ knitr::opts_chunk$set(echo = F, include = F,
                       warning = F, message = F)
 ```
 
-## Setup
 
-Characteristics of the data:
-
-- This cohort deals with non-Sarcoma breast cancer cases (n=~1100) 
-- While the cohort contains data from all stages, we will index from the date of metastasis here.
-- Secondary use data, curated from medical records using a common data model.
-- Multi-site, technically international but overwhelmingly from the east coast US.
-- Participants enter the cohort (are curated) only if they have a second-generation sequencing test result.  
-
-## Analysis
-
-- Goal:  Assessing whether there are features which are prognostic for overall survival from metastasis.  There is a special interest in genetic features.
-- Features:
-  - Genetic:  Binary indicators for mutations, copy number alterations and fusions for about 150 genes which are common to all sequencing panels in the cohort.
-  - Clinical:  Demographics, stage at diagnosis, etc.
--
-
-
-## Changes
-
-- Added stratified survival estimates for hormonal subtype.
-- Fixed a bug causing some participants with de novo metastasis to be eliminated from the analysis.
-- Added some KM plots for a handful of reliably identified features.
-- **Question:** Should we use the NGS order time rather than the report time for our marker of cohort entry?  It appears to be complete in this cohort, so I don't see why would not.
-- Upcoming change:  Apply the gene frequency filters for each strata, not overall.  I am not expecting major result changes.
 
 ```{r}
 library(fs)
@@ -46,93 +21,89 @@ library(here)
 purrr::walk(.x = fs::dir_ls(here("R")), .f = source)
 ```
 
+
+
+
 ```{r}
-# Load all the fitted models from each bootstrap resample.
-boot_models_dmet_all <- readr::read_rds(
-  here("data", "survival", "fit_outputs", "fit_dmet_all.rds")
+read_wrap_surv_sums <- function(file) {
+  readr::read_rds(
+    here('data', 'survival', 'fit_outputs', 'fit_summary',
+         paste0(file, '.rds')
+    )
+  ) 
+}
+
+
+
+
+write_wrap_surv_sum(
+  dft_coef_dmet_os_all,
+     "coef_dmet_os_all"
 )
-boot_models_dmet_trip_neg <- readr::read_rds(
-  here("data", "survival", "fit_outputs", "fit_dmet_trip_neg.rds")
+write_wrap_surv_sum(
+  dft_coef_dmet_os_trip_neg,
+     "coef_dmet_os_trip_neg"
 )
-boot_models_dmet_hr_pos_her2_neg <- readr::read_rds(
-  here("data", "survival", "fit_outputs", "fit_dmet_hr_pos_her2_neg.rds")
+write_wrap_surv_sum(
+  dft_coef_dmet_os_hr_pos_her2_neg,
+  "coef_dmet_os_hr_pos_her2_neg"
 )
-boot_models_dmet_her2_pos <- readr::read_rds(
-  here("data", "survival", "fit_outputs", "fit_dmet_her2_pos.rds")
+write_wrap_surv_sum(
+  dft_coef_dmet_os_her2_pos,
+  "coef_dmet_os_her2_pos"
 )
+write_wrap_surv_sum(
+  dft_coef_dmet_os_all_no_conf,
+  "coef_dmet_os_all_no_conf"
+)
+write_wrap_surv_sum(
+  dft_coef_dmet_os_trip_neg_no_conf,
+  "coef_dmet_os_trip_neg_no_conf"
+)
+write_wrap_surv_sum(
+  dft_coef_dmet_os_hr_pos_her2_neg_no_conf,
+  "coef_dmet_os_hr_pos_her2_neg_no_conf"
+)
+write_wrap_surv_sum(
+  dft_coef_dmet_os_her2_pos_no_conf,
+  "coef_dmet_os_her2_pos_no_conf"
+)
+
+
+
+
+
 
 
 
 # Can replace these once you go back and fix the survival function creator:
 dft_dmet_surv_all <- readr::read_rds(
-  file = here('data', 'survival', 'prepared_data', 'surv_dmet.rds')
+  file = here('data', 'survival', 'prepared_data',
+              'surv_dmet_all.rds')
 )
 dft_dmet_surv_trip_neg <- readr::read_rds(
-  file = here('data', 'survival', 'prepared_data', 'surv_dmet_trip_neg.rds')
+  file = here('data', 'survival', 'prepared_data',
+              'surv_dmet_trip_neg.rds')
 )
 dft_dmet_surv_hr_pos_her2_neg <- readr::read_rds(
-  file = here('data', 'survival', 'prepared_data', 'surv_dmet_hr_pos_her2_neg.rds')
+  file = here('data', 'survival', 'prepared_data',
+              'surv_dmet_hr_pos_her2_neg.rds')
 )
 dft_dmet_surv_her2_pos <- readr::read_rds(
-  file = here('data', 'survival', 'prepared_data', 'surv_dmet_her2_pos.rds')
+  file = here('data', 'survival', 'prepared_data',
+              'surv_dmet_her2_pos.rds')
 )
 
 ```
 
-
-```{r}
-# Stability filter 
-coef_helper <- function(dat, filter_hr_above = 100, rel_thresh = NULL) {
-  dat %<>%
-    mutate(
-      coef_mat = purrr::map(.x = fit, .f = get_cv_lasso_coefs)
-    ) %>%
-    select(-fit) %>%
-    unnest(coef_mat)
-  
-  dat %<>%
-    mutate(
-      feature = forcats::fct_inorder(feature),
-      hr = exp(log_hr)
-    ) %>%
-    filter(hr < filter_hr_above & hr > 1/filter_hr_above) %>%
-    group_by(feature) %>%
-    summarize(
-      reliability = mean(abs(hr-1) > 0.01),
-      hr = mean(hr),
-      n = n()
-    ) 
-  
-  if (!is.null(rel_thresh)) {
-    dat %<>% 
-      filter(reliability >= rel_thresh)
-  }
-  
-  return(dat)
-}
-```
 
 
 # Results
 
 
 ```{r}
-dft_coef_dmet_os_all <- coef_helper(
-  dat = boot_models_dmet_all,
-  rel_thresh = 0.5
-)
-dft_coef_dmet_os_trip_neg <- coef_helper(
-  dat = boot_models_dmet_trip_neg,
-  rel_thresh = 0.5
-)
-dft_coef_dmet_os_hr_pos_her2_neg <- coef_helper(
-  boot_models_dmet_hr_pos_her2_neg,
-  rel_thresh = 0.5
-)
-dft_coef_dmet_os_her2_pos <- coef_helper(
-  dat = boot_models_dmet_her2_pos,
-  rel_thresh = 0.5
-)
+
+
 
 gg_rel_scatter_os_all <- plot_hr_rel_scatter(
   dft_coef_dmet_os_all,
@@ -204,11 +175,6 @@ gg_surv_dmet_all_stage_iv <- dft_dmet_surv_all %>%
 ```
 
 
-## KM plots for sanity checking
-
-For each highly reliable feature I'll show simple KM plots.  The point of these is not to statistically test, it's to verify that the model results seem sensible and provide important n's over the followup time.  The LASSO results should give us a more principled estimate of the effect size and reliability.
-
-All KM plots shown use simple risk set adjustment.  This means that we've accounted for left truncation time (NGS testing), but in a way that assumes independence between the truncation and event times.  Generally this assumption is reasonable in the metastatic setting for BPC data.
 
 ---
 
@@ -230,47 +196,6 @@ gg_surv_dmet_all_stage_iv
 
 
 
----
-
-```{r, include = T}
-gg_rel_scatter_os_trip_neg
-```
-
-
-
-
-```{r}
-gg_surv_dmet_trip_neg_ATM_mut <- dft_dmet_surv_trip_neg %>%
-  mutate(ATM_mut = binary_helper(ATM_mut)) %>%
-  plot_km_dmet_binary_strata(
-    dat = .,
-    strata = "ATM_mut"
-  )
-
-gg_surv_dmet_trip_neg_PTEN_mut <- dft_dmet_surv_trip_neg %>%
-  mutate(PTEN_mut = binary_helper(PTEN_mut)) %>%
-  plot_km_dmet_binary_strata(
-    dat = .,
-    strata = "PTEN_mut"
-  )
-
-
-```
-
----
-
-```{r, include = T}
-gg_surv_dmet_trip_neg_ATM_mut
-```
-
----
-
-```{r, include = T}
-gg_surv_dmet_trip_neg_PTEN_mut
-```
-
-
-
 
 ---
 
@@ -278,9 +203,49 @@ gg_surv_dmet_trip_neg_PTEN_mut
 gg_rel_scatter_os_hr_pos_her2_neg
 ```
 
+```{r, include = T}
+gg_surv_dmet_hr_pos_her2_neg_1 <- dft_dmet_surv_hr_pos_her2_neg %>%
+  mutate(TP53_mut = binary_helper(TP53_mut)) %>%
+  plot_km_dmet_binary_strata(
+    dat = .,
+    strata = "TP53_mut"
+  )
+
+gg_surv_dmet_hr_pos_her2_neg_2 <- dft_dmet_surv_hr_pos_her2_neg %>%
+  mutate(DNMT3A_mut = binary_helper(DNMT3A_mut)) %>%
+  plot_km_dmet_binary_strata(
+    dat = .,
+    strata = "DNMT3A_mut"
+  )
+
+gg_surv_dmet_hr_pos_her2_neg_3 <- dft_dmet_surv_hr_pos_her2_neg %>%
+  mutate(MYC_cna = binary_helper(MYC_cna)) %>%
+  plot_km_dmet_binary_strata(
+    dat = .,
+    strata = "MYC_cna"
+  )
+
+```
 
 
 
+---
+
+```{r, include = T}
+gg_surv_dmet_hr_pos_her2_neg_1
+```
+
+---
+
+```{r, include = T}
+gg_surv_dmet_hr_pos_her2_neg_2
+```
+
+---
+
+```{r, include = T}
+gg_surv_dmet_hr_pos_her2_neg_3
+```
 
 ---
 
@@ -289,20 +254,38 @@ gg_rel_scatter_os_her2_pos
 ```
 
 
-
-```{r}
-gg_surv_dmet_her2_pos_CDH1_mut <- dft_dmet_surv_her2_pos %>%
-  mutate(CDH1_mut = binary_helper(CDH1_mut)) %>%
+```{r, include = T}
+gg_surv_dmet_her2_pos_1 <- dft_dmet_surv_her2_pos %>%
+  mutate(ERBB2_cna = binary_helper(ERBB2_cna)) %>%
   plot_km_dmet_binary_strata(
     dat = .,
-    strata = "CDH1_mut"
+    strata = "ERBB2_cna"
   )
+
 ```
 
 ---
 
 ```{r, include = T}
-gg_surv_dmet_her2_pos_CDH1_mut
+gg_surv_dmet_her2_pos_1
+```
+
+
+
+---
+
+```{r, include = T}
+gg_rel_scatter_os_trip_neg
+```
+
+```{r, include = T}
+gg_surv_dmet_trip_neg <- dft_dmet_surv_trip_neg %>%
+  mutate(MYCL_cna = binary_helper(MYCL_cna)) %>%
+  plot_km_dmet_binary_strata(
+    dat = .,
+    strata = "MYCL_cna"
+  )
+
 ```
 
 
@@ -317,7 +300,7 @@ dft_coef_combined <- bind_rows(
   mutate(dft_coef_dmet_os_hr_pos_her2_neg, strata = "HR+/HER2-"),
   mutate(dft_coef_dmet_os_her2_pos, strata = "HER2+")
 ) %>%
-  filter(reliability > 0.7) %>%
+  filter(stability > 0.3) %>%
   mutate(strata = forcats::fct_inorder(strata))
 ```
 
@@ -325,6 +308,5 @@ dft_coef_combined <- bind_rows(
 
 ```{r, include = T}
 plot_hr_forest_multi(dft_coef_combined, strat_var = "strata") + 
-  labs(title = "Features with over 70% reliability over all models")
+  labs(title = "Features with over 30% stability over all models")
 ```
-
