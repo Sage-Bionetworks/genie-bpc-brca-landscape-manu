@@ -12,6 +12,7 @@ library(magrittr)
 library(dplyr)
 library(tidyr)
 library(janitor)
+library(forcats)
 library(yaml)
 library(stringr)
 

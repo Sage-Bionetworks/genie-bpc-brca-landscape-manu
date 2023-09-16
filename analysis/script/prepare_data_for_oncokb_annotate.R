@@ -26,14 +26,16 @@ dft_cna_long_selected <- dft_cna %>%
     values_to = "value"
   ) %>%
   # Trusting in the work of my collaborators 100% here:
-  filter(!is.na(value) & value >= 2) %>%
-  select(-value)
+  filter(!is.na(value) & value >= 2) 
 
 dft_otc <- dft_cpt %>% select(cpt_genie_sample_id, cpt_oncotree_code)
 
 
 # For each of our three file types we will add in the oncotree code:
-dft_otc <- dft_cpt %>% select(cpt_genie_sample_id, cpt_oncotree_code)
+dft_otc <- dft_cpt %>% select(
+  cpt_genie_sample_id, 
+  ONCOTREE_CODE = cpt_oncotree_code # required name for the annotator
+)
 dft_mut <- left_join(
   dft_mut, dft_otc, 
   by = c(Tumor_Sample_Barcode = "cpt_genie_sample_id"),
@@ -55,16 +57,16 @@ dft_fus <- left_join(
 genomic_row_removed_helper <- function(dat) {
   dat_name <- deparse(substitute(dat))
   dat_nrow_pre <- nrow(dat)
-  dat %<>% filter(!is.na(cpt_oncotree_code))
+  dat %<>% filter(!is.na(ONCOTREE_CODE))
   
   dat_nrow_post <- nrow(dat)
   nrow_diff <- dat_nrow_pre-dat_nrow_post
   nrow_diff_pct <- nrow_diff/dat_nrow_pre
-  
   cli::cli_alert_success(
     "Removed {nrow_diff} rows ({round(nrow_diff_pct,0)}%) from {dat_name} filtering down to only 'cohort' samples with a valid oncotree code."
   )
   
+  return(dat)
 }
 
 dft_mut <- genomic_row_removed_helper(dft_mut)
