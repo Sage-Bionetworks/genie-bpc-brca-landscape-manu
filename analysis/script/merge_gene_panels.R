@@ -1,13 +1,4 @@
-library(here)
-library(purrr)
-library(fs)
-library(tibble)
-library(dplyr)
-library(yaml)
-library(magrittr)
-library(tidyr)
-library(caret)
-
+library(here); library(fs); library(purrr);
 purrr::walk(fs::dir_ls('R'), .f = source)
 
 vec_gene_panels <- fs::dir_ls('data-raw') %>%

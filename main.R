@@ -38,4 +38,20 @@ rmarkdown::render(
 
 
 
+# Separate thread started on Sept 15 for annotating genes myself (faster)
+source(here('analysis', 'script', 'reshape_cna.R'))
+# # run annotate_oncokb.sh from the command line.  See comments on enviro vars.
+source(here('analysis', 'script', 'save_oncokb_annotated_data.R'))
+
+
+
+
+
+
+
+
+
+
+
+
 # source(here('analysis', 'scripts', 'upload_outputs_synapse.R'))

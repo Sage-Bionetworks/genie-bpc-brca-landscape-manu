@@ -8,22 +8,17 @@
 # This login will expire every 24h, and should be replaced with a PAT
 #   access ASAP.
 
-library(cli)
-library(synapser)
-library(here)
-library(genieBPC)
-library(fs)
-library(purrr)
-library(here)
-library(tibble)
-library(stringr)
-library(dplyr)
+library(purrr); library(here); library(fs);
+# Load all helper functions
+purrr::walk(.x = fs::dir_ls('R'), .f = source)
 
 dir.create(here("data-raw"), showWarnings = F)
 dir.create(here("data"), showWarnings = F)
 # Not immediately needed but setting up now:
 dir.create(here('data', 'survival', 'prepared_data'), showWarnings = F)
 dir.create(here('data', 'survival', 'fit_outputs'), showWarnings = F)
+dir.create(here('data-raw', 'genomic'), showWarnings = F)
+dir.create(here('data', 'genomic'), showWarnings = F)
 
 # Rdata version:
 data_list <- genieBPC::pull_data_synapse(cohort = "BrCa",
@@ -47,26 +42,37 @@ vec_gen_files <- c(
   #'data_gene_panel_DFCI-ONCOPANEL-1.txt'
   # Also includes all gene panels using the logic below.
 )
-dft_dat_list <- synGetChildren(synid_clin_data) %>%
+dft_clin_list <- synGetChildren(synid_clin_data) %>%
   as.list %>%
   purrr::map_dfr(.x = .,
                  .f = as_tibble)
+
 dft_gen_list <- synGetChildren(synid_gen_data) %>%
   as.list %>%
   purrr::map_dfr(.x = .,
                  .f = as_tibble) %>%
   filter(name %in% vec_gen_files | str_detect(name, "^data_gene_panel_.*"))
-dft_dat_list <- bind_rows(dft_dat_list, dft_gen_list)
 
-syn_store_in_dataraw <- function(sid) {
+# dft_dat_list <- bind_rows(dft_clin_list, dft_gen_list)
+
+syn_store_help <- function(sid, loc = here('data-raw')) {
   synGet(
     entity = sid, 
-    downloadLocation = here("data-raw"),
+    downloadLocation = loc,
     ifcollision = 'overwrite.local' # replaces local copy if it exists.
   )
 }
-purrr::walk(.x = dft_dat_list$id, 
-            .f = syn_store_in_dataraw)
+purrr::walk(
+  .x = dft_clin_list$id, 
+  .f = syn_store_help
+)
+
+purrr::walk(
+  .x = dft_gen_list$id, 
+  .f = (function(x) {
+    syn_store_help(x, loc = here('data-raw', 'genomic'))
+  })
+)
 
 
 
@@ -78,4 +84,4 @@ classified_meds_synid <- "syn51405609"
 synGet(entity = classified_meds_synid,
        downloadLocation = here("data"))
 
-# And one file created by Protiva and Brooke - I saved a perm
+# And one file created by Protiva and Brooke - I saved a copy on Synapse.
