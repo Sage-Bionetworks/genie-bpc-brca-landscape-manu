@@ -186,7 +186,7 @@ readr::write_rds(
 # Assess the oncoKB impact on individual mutations
 
 dft_cpt <- readr::read_rds(
-  here('data', 'clin', 'dft_cpt.rds')
+  here('data', 'clin_data_cohort', 'dft_cpt.rds')
 )
 dft_gene_test <- dft_cpt %>%
   select(
@@ -202,6 +202,10 @@ dft_gene_test %<>%
   left_join(., dft_gp_all, by = "cpt_seq_assay_id",
             relationship = "many-to-many")
 
+# We're making bigger assumptions here:  Any panel that tests the gene
+#   is assumed to cover fusions, CNAs and mutations.  In the prostate 
+#   cohort we tried to be more subtle but it's probably not justified since
+#.  we really have no information at all about which CNAs and fusions are covered.
 dft_gene_test %<>%
   select(
     sample_id = cpt_genie_sample_id, 
@@ -209,23 +213,14 @@ dft_gene_test %<>%
     hugo, 
     contains("tested")
   ) %>%
-  pivot_longer(
-    cols = contains("tested"),
-    names_to = "test_type",
-    values_to = "test_logical"
-  ) %>%
+  slice(rep(1:n(), times = 3)) %>%
   mutate(
-    alt_type = case_when(
-      test_type %in% "tested" ~ "Mutation",
-      test_type %in% "tested_cna" ~ "CNA",
-      test_type %in% "tested_fusion" ~ "Fusion"
-    ),
+    alt_type = rep(c("Mutation", "CNA", "Fusion"), each = n()/3),
     alt_type = factor(alt_type, levels = lev_alt_type)
   )
 
 dft_gene_test %<>%
-  filter(test_logical) %>%
-  select(-c(test_type, test_logical))
+  filter(tested)
 
 # Here we do a diversion to investigate something:  Are there samples here
 #  which were NOT tested for an alteration but show it anyway.
@@ -265,6 +260,9 @@ dft_gene_test <- dft_alt %>%
     by = c("sample_id", "hugo", "alt_type")
   )
 
+dft_gene_test %<>%
+  mutate(altered = if_else(is.na(altered), 0, altered))
+
 
 readr::write_rds(
   x = dft_gene_test,
@@ -273,8 +271,7 @@ readr::write_rds(
 
 
 
-# Now we're ready to summarize:
-
+# This stuff is probably not strictly needed, but it is useful:
 dft_onco_imp <- dft_gene_test %>%
   group_by(hugo, alt_type) %>%
   summarize(
