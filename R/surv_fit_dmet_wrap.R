@@ -10,6 +10,14 @@ surv_fit_dmet_wrap <- function(
     dat, 
     boot_rep, 
     main_seed, 
+    gene_feature_suffix = c(
+      "mut",
+      "cna",
+      "fus",
+      "lof",
+      "gof",
+      "gene"
+    ),
     additional_features = c(
       "age_dx_c", 
       "stage_dx_iv_num",
@@ -18,6 +26,10 @@ surv_fit_dmet_wrap <- function(
       "hispanic")
     ) {
   
+  gene_regex <- paste(
+    paste0("_", gene_feature_suffix, "$"),
+    collapse = "|"
+  )
   
   dat_sorted <- dat %>%
     # just to get the output in readable order we do an alphabet sort first:
@@ -26,9 +38,7 @@ surv_fit_dmet_wrap <- function(
       tt_cpt_dmet_yrs_pos,
       tt_os_dmet_yrs,
       os_dx_status,
-      matches("_mut$"),
-      matches("_cna$"),
-      matches("_fus$"),
+      matches(gene_regex),
       all_of(additional_features)
     ) 
   

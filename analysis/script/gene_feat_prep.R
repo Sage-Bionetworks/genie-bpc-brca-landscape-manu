@@ -44,7 +44,8 @@ dft_diff_eff <- dft_alt_filt %>%
       T,
       F
     )
-  )
+  ) %>%
+  ungroup(.)
 
 # We will probably want to share these with the group:
 readr::write_rds(
@@ -75,7 +76,8 @@ dft_gene_covar <- readr::write_rds(
 )
 
 # Todo:  
-# (1) Merge this information into the existing survival prep (#2) and run the stuff.
+# (1) Merge this information into the existing survival prep (#2).
+# (2) Run the stuff, looking back to your promises from slides.
 # (2) Do a POC with anti-HER2 therapies.
 
     

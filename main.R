@@ -31,8 +31,8 @@ source(here('analysis', 'script', 'surv_prep_dmet.R'))
 source(here('analysis', 'script', 'surv_fit_dmet.R'))
 source(here('analysis', 'script', 'surv_process_results_dmet.R'))
 rmarkdown::render(
-  input = here('analysis', 'report', 'brca_regimens.Rmd'),
-  output_file = '01-bpc-brca-regimen-overview.html',
+  input = here('analysis', 'report', 'bpc-breast-surv_dmet.Rmd'),
+  output_file = '02-bpc-breast_surv-dmet.html',
   output_dir = here('output')
 )
 
@@ -44,9 +44,23 @@ source(here('analysis', 'script', 'prepare_data_for_oncokb_annotate.R'))
 source(here('analysis', 'script', 'create_gene_panel_dat.R'))
 source(here('analysis', 'script', 'filter_oncogenic_create_features.R'))
 source(here('analysis', 'script', 'gene_feat_prep.R'))
+source(here('analysis', 'script', 'surv_prep_dmet_2.R'))
+source(here('analysis', 'script', 'surv_fit_dmet_2.R'))
+source(here('analysis', 'script', 'surv_process_results_dmet_2.R'))
+rmarkdown::render(
+  input = here('analysis', 'report', 'bpc-breast-surv_dmet.Rmd'),
+  output_file = '02-bpc-breast_surv-dmet.html',
+  output_dir = here('output')
+)
 
 
 
+
+
+
+# Builds from "gene_feat_prep.R" above:
+source(here('analysis', 'script', 'create_drug_dat.R'))
+source(here('analysis', 'script', 'surv_prep_dmet_drugs.R'))
 
 
 
@@ -54,3 +68,5 @@ source(here('analysis', 'script', 'gene_feat_prep.R'))
 
 
 # source(here('analysis', 'scripts', 'upload_outputs_synapse.R'))
+
+source(here('analysis', 'script', 'surv_prep_dmet_2.R'))
