@@ -38,7 +38,8 @@ rmarkdown::render(
 
 
 
-# Separate thread started on Sept 15 for annotating genes myself (faster)
+# Separate thread started on Sept 15 for annotating genes myself (faster),
+#   and doing the survival modeling with different features.
 source(here('analysis', 'script', 'prepare_data_for_oncokb_annotate.R'))
 # # run annotate_oncokb.sh from the command line.  See comments on enviro vars.
 source(here('analysis', 'script', 'create_gene_panel_dat.R'))
@@ -52,7 +53,6 @@ rmarkdown::render(
   output_file = '02-bpc-breast_surv-dmet.html',
   output_dir = here('output')
 )
-
 
 
 

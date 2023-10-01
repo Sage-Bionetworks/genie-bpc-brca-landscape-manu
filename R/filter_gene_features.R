@@ -21,7 +21,6 @@ filter_gene_features <- function(
   
   suf <- paste0("_", valid_gene_suffix, "$")
   suf <- paste(suf, collapse = "|")
-  print(suf)
   
   dat_gene <- dat %>%
     select(

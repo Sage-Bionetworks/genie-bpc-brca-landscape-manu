@@ -33,9 +33,6 @@ read_wrap_surv_sum <- function(file) {
   ) 
 }
 
-
-
-
 dft_coef_dmet_os_all <- read_wrap_surv_sum(
      "coef_dmet_os_all"
 )

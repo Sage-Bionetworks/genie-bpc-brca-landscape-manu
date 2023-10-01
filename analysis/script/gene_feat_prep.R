@@ -64,7 +64,10 @@ vec_split_by_function <- dft_diff_eff %>%
 dft_gene_covar <- split_gene_features(
   dat_alt = dft_alt_filt,
   vec_type = vec_split_by_type,
-  vec_function = vec_split_by_function
+  # Oct 1 2023 update:  Turns out immediately after writing the code for this
+  #  that the group didn't want to do it.  So no we feed in no features for 
+  #  funciton splitting.
+  vec_function = character(0)
 )
 
 # Quick sanity check on both the feature names and numbers:
