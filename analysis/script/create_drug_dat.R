@@ -42,11 +42,17 @@ dft_drug %<>%
   )
 
 dft_drug %<>% 
-  rename(drug = drugs_drug) %>%
+  rename(agent = drugs_drug) %>%
   select(-drugs_drug_oth) # just no usable information there sadly.
 
 dft_drug %<>%
-  filter(!is.na(drug))
+  filter(!is.na(agent)) %>%
+  mutate(
+    # agent = str_replace(agent, "\\(.*\\)$", "")
+    # The above is the correct regex, but there's one truncated synonym list
+    #   which is too long, so we never see the ')' character.  Instead:
+    agent = str_replace(agent, "\\(.*", "")
+  )
 
 dft_drug %<>%
   mutate(
@@ -55,6 +61,40 @@ dft_drug %<>%
       .fns = as.numeric
     )
   )
+
+dft_drug_map <- read_csv(
+  here('data', 'drug_map.csv')
+) %>%
+  select(
+    agent, 
+    exclude_from_class = exclude, 
+    class_comp
+  )
+
+vec_drugs_not_in_mapping <- anti_join(
+  dft_drug,
+  dft_drug_map,
+  by = "agent"
+) %>%
+  pull(agent)
+
+if (length(vec_drugs_not_in_mapping) > 0) {
+  cli::cli_alert_danger(
+      "There are {length(vec_drugs_not_in_mapping)} uses of drugs not listed in data/drug_map.csv"
+  )
+  cli::cli_alert_danger(
+    "Drugs include: {paste(sort(unique(vec_drugs_not_in_mapping)), collapse = ', ')}"
+  )
+}
+
+dft_drug <- left_join(
+  dft_drug,
+  dft_drug_map,
+  by = c("agent")
+)
+
+
+
 
 readr::write_rds(
   x = dft_drug,

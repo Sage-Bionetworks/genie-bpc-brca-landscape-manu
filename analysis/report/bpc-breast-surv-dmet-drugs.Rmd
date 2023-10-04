@@ -1,6 +1,5 @@
 ---
-title: "Survival from metastasis"
-subtitle: "Version 2.1 using combined gene features"
+title: "Predictive survival for drug classes"
 output: 
   beamer_presentation:
     toc: false
@@ -26,68 +25,6 @@ purrr::walk(.x = fs::dir_ls(here("R")), .f = source)
 ```
 
 
-```{r}
-source_folder_top <- here('data', 'survival', 'v2')
-```
-
-
-```{r}
-read_wrap_surv_sum <- function(file) {
-  readr::read_rds(
-    here(source_folder_top, 'fit_outputs', 'fit_summary', paste0(file, '.rds')
-    )
-  ) 
-}
-
-
-
-
-dft_coef_dmet_os_all <- read_wrap_surv_sum(
-     "coef_dmet_os_all"
-)
-dft_coef_dmet_os_trip_neg <- read_wrap_surv_sum(
-     "coef_dmet_os_trip_neg"
-)
-dft_coef_dmet_os_hr_pos_her2_neg <- read_wrap_surv_sum(
-  "coef_dmet_os_hr_pos_her2_neg"
-)
-dft_coef_dmet_os_her2_pos <- read_wrap_surv_sum(
-  "coef_dmet_os_her2_pos"
-)
-
-
-dft_model_compare_dmet_os_all <- read_wrap_surv_sum(
-  "model_compare_os_all"
-)
-dft_model_compare_dmet_os_trip_neg <- read_wrap_surv_sum(
-  "model_compare_os_trip_neg"
-)
-dft_model_compare_dmet_os_hr_pos_her2_neg <- read_wrap_surv_sum(
-  "model_compare_os_hr_pos_her2_neg"
-)
-dft_model_compare_dmet_os_her2_pos <- read_wrap_surv_sum(
-  "model_compare_os_her2_pos"
-)
-
-
-
-
-
-# Can replace these once you go back and fix the survival function creator:
-dft_dmet_surv_all <- readr::read_rds(
-  file = here(source_folder_top, 'prepared_data', 'surv_dmet_all.rds')
-)
-dft_dmet_surv_trip_neg <- readr::read_rds(
-  file = here(source_folder_top, 'prepared_data', 'surv_dmet_trip_neg.rds')
-)
-dft_dmet_surv_hr_pos_her2_neg <- readr::read_rds(
-  file = here(source_folder_top, 'prepared_data', 'surv_dmet_hr_pos_her2_neg.rds')
-)
-dft_dmet_surv_her2_pos <- readr::read_rds(
-  file = here(source_folder_top, 'prepared_data', 'surv_dmet_her2_pos.rds')
-)
-
-```
 
 ## Model changes
 

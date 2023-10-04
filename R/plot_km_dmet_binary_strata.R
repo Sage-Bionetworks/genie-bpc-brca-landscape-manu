@@ -1,12 +1,14 @@
-
-
 plot_km_dmet_binary_strata <- function(
     dat,
     strata_var, 
     x_lab = "Years from distant metastasis",
-    plot_title = "Overall survival (from metastasis)",
+    plot_title = "Overall survival from metastasis",
     pal = c("#004488", "#bb5566", "#ddaa33", "gray80")
 ) {
+  
+  # Decided this is probably OK to add even though it's really data processing:
+  dat %<>%
+    mutate({{strata_var}} := binary_gene_feature_helper(.data[[strata_var]]))
   
   sf2 <- survfit2(
     as.formula(
@@ -27,6 +29,7 @@ plot_km_dmet_binary_strata <- function(
         "cum.censor",
         "cum.event"
       ),
+      hjust = 0
     ) + 
     scale_color_manual(
       name = strata_var,
@@ -43,7 +46,7 @@ plot_km_dmet_binary_strata <- function(
     ) + 
     scale_x_continuous(
       name = "Years from distant metastasis",
-      expand = c(0.025,0),
+      expand = c(0,0),
       breaks = seq(0, 100, by = 2.5)
     ) + 
     coord_cartesian(

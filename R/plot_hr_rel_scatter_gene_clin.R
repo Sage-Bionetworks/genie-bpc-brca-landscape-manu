@@ -3,7 +3,7 @@ plot_hr_rel_scatter_gene_clin <- function(
     legend_title = NULL,
     plot_subtitle = NULL,
     plot_title = NULL,
-    pal = c("#004488", "#ddaa33"),
+    pal = c("#004488", "#bb5566"),
     txt_size = 2.5) {
   
   dat %<>%

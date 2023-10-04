@@ -60,10 +60,13 @@ rmarkdown::render(
 
 # Builds from "gene_feat_prep.R" above:
 source(here('analysis', 'script', 'create_drug_dat.R'))
-source(here('analysis', 'script', 'surv_prep_dmet_drugs.R'))
+source(here('analysis', 'script', 'count_drug_feasibility.R'))
 
-
-
+rmarkdown::render(
+  input = here('analysis', 'report', 'bpc-breast-surv_dmet.Rmd'),
+  output_file = '02-bpc-breast_surv-dmet.html',
+  output_dir = here('output')
+)
 
 
 
