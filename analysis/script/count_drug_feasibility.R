@@ -144,11 +144,11 @@ dft_drug_feas <- left_join(
 dft_drug_feas %<>%
   mutate(
     crit_met_lt_drug = if_else(
-      dx_dmet_int < drug_dx_start_int_yrs,
+      dx_dmet_int <= drug_dx_start_int_yrs,
       T, F, F # just handles the case of NAs.
     ),
     crit_ngs_lt_drug = if_else(
-      dx_first_cpt_int < drug_dx_start_int_yrs,
+      dx_first_cpt_int <= drug_dx_start_int_yrs,
       T, F, F
     ),
     crit_os_ngs_lt_event = if_else(
@@ -160,11 +160,11 @@ dft_drug_feas %<>%
       T, F, F
     ),
     crit_os_drug_lt_event = if_else(
-      drug_dx_start_int_yrs < tt_os_dx_yrs,
+      drug_dx_start_int_yrs <= tt_os_dx_yrs,
       T, F, F
     ),
     crit_pfs_drug_lt_event = if_else(
-      drug_dx_start_int_yrs < tt_pfs_i_and_m_dx_yrs,
+      drug_dx_start_int_yrs <= tt_pfs_i_and_m_dx_yrs,
       T, F, F
     )
   )
@@ -181,11 +181,13 @@ dft_drug_feas %<>%
 
 write_rds(
   x = dft_drug_feas,
-  file = here('data', 'clin_data_cohort', 'drug_feasibility_surv_by_record.rds')
+  file = here('data', 'clin_data_cohort', 
+              'drug_feas_surv.rds')
 )
 
 
-dft_drug_feas_sum <- dft_drug_feas %>%
+dft_drug_feas_dmet_sum <- dft_drug_feas %>%
+  filter(had_met) %>% 
   group_by(class_comp) %>%
   summarize(
     n_used_agent = n(),
@@ -195,8 +197,9 @@ dft_drug_feas_sum <- dft_drug_feas %>%
   )
     
 write_rds(
-  x = dft_drug_feas_sum,
-  file = here('data', 'clin_data_cohort', 'drug_feasibility_summary.rds')
+  x = dft_drug_feas_dmet_sum,
+  file = here('data', 'clin_data_cohort',
+              'drug_feas_surv_dmet_sum.rds')
 )
       
 

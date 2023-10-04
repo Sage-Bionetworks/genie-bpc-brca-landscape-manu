@@ -100,28 +100,30 @@ For today:
 # Results
 
 ```{r}
+
+vec_st <- "Stability is the frequency of identification in a boostrapped regularized LTRC Cox model"
 gg_rel_scatter_os_all <- plot_hr_rel_scatter_gene_clin(
   dft_coef_dmet_os_all,
   plot_title = "OS prognostic variables from distant metastasis",
-  plot_subtitle = "Reliability is the frequency of identification in a boostrapped regularized LTRC Cox model"
+  plot_subtitle = vec_st
 )
 
 gg_rel_scatter_os_trip_neg <- plot_hr_rel_scatter_gene_clin(
   dft_coef_dmet_os_trip_neg,
   plot_title = "OS prognostic variables from distant metastasis (triple negative subgroup)",
-  plot_subtitle = "Reliability is the frequency of identification in a boostrapped regularized LTRC Cox model"
+  plot_subtitle = vec_st 
 )
 
 gg_rel_scatter_os_hr_pos_her2_neg <- plot_hr_rel_scatter_gene_clin(
   dft_coef_dmet_os_hr_pos_her2_neg,
   plot_title = "OS prognostic variables from distant metastasis (HR+/HER2- subgroup)",
-  plot_subtitle = "Reliability is the frequency of identification in a boostrapped regularized LTRC Cox model"
+  plot_subtitle = vec_st
 )
   
 gg_rel_scatter_os_her2_pos <- plot_hr_rel_scatter_gene_clin(
   dft_coef_dmet_os_her2_pos,
     plot_title = "OS prognostic variables from distant metastasis (HER2+ subgroup)",
-  plot_subtitle = "Reliability is the frequency of identification in a boostrapped regularized LTRC Cox model"
+  plot_subtitle = vec_st
 )
 ```
 

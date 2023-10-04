@@ -20,29 +20,6 @@ dft_cpt <- readr::read_rds(
 dft_reg <- readr::read_rds(
   here('data', 'clin_data_cohort', 'dft_reg.rds')
 )
-dft_drug_map <- readr::read_csv(
-  here('data', 'drug_map.csv')
-)
-
-vec_antiher2_agents <- dft_drug_map %>%
-  filter(class_comp %in% "antiher2") %>%
-  pull(agent)
-
-find_first_use <- function(
-    dat_reg,
-    agent
-) {
-  agent_regex <- paste(agent, collapse = "|")
-    
-  dat_reg %<>%
-    filter(str_detect(regimen_drugs, agent_regex))
-  
-  return(dat_reg)
-           
-}
-
-find_first_use(dft_reg, vec_antiher2_agents)
-
 dft_gene_feat_wide <- readr::read_rds(
   here('data', 'genomic', 'gene_feat_oncogenic.rds')
 )

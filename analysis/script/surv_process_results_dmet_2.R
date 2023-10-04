@@ -7,10 +7,10 @@ library(fs); library(purrr); library(here);
 purrr::walk(.x = fs::dir_ls(here("R")), .f = source)
 
 
-raw_folder <- here("data", "survival", 'v2', 'fit_outputs')
+raw_folder <- here("data", "survival", 'drug', 'fit_outputs')
 # Create the folder if it does not exist:
-fs::dir_create('data', 'survival', 'v2', 'fit_outputs', 'fit_summary')
-output_folder <- here('data', 'survival', 'v2', 'fit_outputs', 'fit_summary')
+fs::dir_create('data', 'survival', 'drug', 'fit_outputs', 'fit_summary')
+output_folder <- here('data', 'survival', 'drug', 'fit_outputs', 'fit_summary')
 
 
 boot_models_dmet_all <- readr::read_rds(
