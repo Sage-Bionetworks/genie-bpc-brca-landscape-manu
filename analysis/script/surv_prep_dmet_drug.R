@@ -23,22 +23,7 @@ dft_gene_feat_wide <- readr::read_rds(
 
 
 
-# Copy-pasted code from the regular dmet analysis:
-dft_gene_feat <- dft_gene_feat_wide %>%
-  pivot_longer(
-    cols = -sample_id,
-    names_to = "feature",
-    values_to = "value"
-  ) %>%
-  # just some stuff to match the previously written code:
-  rename(
-    cpt_genie_sample_id = sample_id
-  ) %>%
-  mutate(
-    value = as.integer(value)
-  )
 
-# Doing this now for my cohort tracking - possibly could do it at the start.
 dft_ca_ind %<>% 
   mutate(
     bca_subtype_f_simple = forcats::fct_na_value_to_level(
@@ -48,7 +33,12 @@ dft_ca_ind %<>%
   )
 
 
-# dft_dmet_timing <- get_dmet_timing(ca_ind_df = dft_ca_ind)
+
+
+
+
+
+
 
 # POC: do the CDK inhibitor case.
 dft_drug_feas_cdk <- dft_drug_feas_surv %>%

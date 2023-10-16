@@ -10,9 +10,6 @@ purrr::walk(.x = fs::dir_ls('R'), .f = source)
 dft_ca_ind <- readr::read_rds(
   here('data', 'clin_data_cohort', 'dft_ca_ind.rds')
 )
-dft_cpt <- readr::read_rds(
-  here('data', 'clin_data_cohort', 'dft_cpt.rds')
-)
 dft_gene_feat_wide <- readr::read_rds(
   here('data', 'genomic', 'gene_feat_oncogenic.rds')
 )
