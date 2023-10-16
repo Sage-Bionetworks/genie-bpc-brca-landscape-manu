@@ -85,11 +85,27 @@ dft_clin_char <- dft_ca_ind %>%
   ) %>%
   full_join(., dft_clin_char, by = "record_id") 
 
+dft_clin_char %<>% 
+  mutate(
+    dx_to_dmets_yrs = if_else(stage_dx_iv %in% "Stage IV", 0, dx_to_dmets_yrs),
+    tt_os_dmet_yrs = case_when(
+      is.na(dx_to_dmets_yrs) ~ NA_real_,
+      T ~ tt_os_dx_yrs - dx_to_dmets_yrs,
+    )
+    # pfs is already relative to stage IV or dmet date.
+  ) 
+
+# to avoid errors, we will trim out the variables relative to diagnosis.
+# It would be highly unusual to do an analysis from diagnosis in the cohort
+# who goes on to metastasize - leaving these variables in increases the chances
+# that I will make that mistake.
+
+
 readr::write_rds(
   x = dft_clin_char,
   here(
     'data', 'survival', 'v2', 'prepared_data', 
-    'clin_char_dmet.rds'
+    'clin_char.rds'
   )
 )
 
@@ -101,3 +117,10 @@ readr::write_rds(
   )
 )
 
+readr::write_rds(
+  x = dft_surv_consort,
+  here(
+    'data', 'survival', 'v2', 'prepared_data', 
+    'surv_consort.rds'
+  )
+)

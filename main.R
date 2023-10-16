@@ -13,6 +13,7 @@ library(fs)
 # Load all helper functions
 purrr::walk(.x = fs::dir_ls('R'), .f = source)
 
+source(here('analysis', 'script', 'folder_setup.R'))
 source(here('analysis', 'script', 'get_raw_data.R'))
 source(here('analysis', 'script', 'filter_data_for_cohort.R'))
 source(here('analysis', 'script', 'process_drug_data.R'))

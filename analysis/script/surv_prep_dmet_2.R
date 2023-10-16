@@ -17,16 +17,23 @@ dft_gene_feat_wide <- readr::read_rds(
   here('data', 'genomic', 'gene_feat_oncogenic.rds')
 )
 # Clinical characteristics already filtered and merged:
-dft_clin_char_dmet <- readr::read_rds(
+dft_clin_char <- readr::read_rds(
   here(
     'data', 'survival', 'v2', 'prepared_data',
-    'clin_char_dmet.rds'
+    'clin_char.rds'
   )
 )
 dft_cpt_dmet <- readr::read_rds(
   here(
     'data', 'survival', 'v2', 'prepared_data',
     'cpt_dmet.rds'
+  )
+)
+# for tracking the flow of subjects:
+dft_surv_consort <- readr::read_rds(
+  here(
+    'data', 'survival', 'v2', 'prepared_data',
+    'surv_consort.rds'
   )
 )
 
@@ -46,9 +53,16 @@ dft_gene_comb_all <- combine_cpt_gene_feat_wide(
 
 
 #######################################
-### Add surv vars for this analysis ###
+### Combine features, add surv vars ###
 #######################################
 
+# Clinical features are added to the keys in the gene feature dataset.
+dft_dmet_surv_all <- combine_clin_gene(
+  dat_gene = dft_gene_comb_all,
+  dat_clin = dft_clin_char
+) 
+
+# Function only used once - added for clarity.
 add_specific_dmet_vars <- function(dat) {
   dat %<>% mutate(
     dat,
@@ -62,33 +76,9 @@ add_specific_dmet_vars <- function(dat) {
   return(dat)
 }
 
-
-
-dft_gene_feat <- dft_gene_feat_wide %>%
-  pivot_longer(
-    cols = -sample_id,
-    names_to = "feature",
-    values_to = "value"
-  ) %>%
-  # just some stuff to match the previously written code:
-  rename(
-    cpt_genie_sample_id = sample_id
-  ) %>%
-  mutate(
-    value = as.integer(value)
-  )
-
-
-
-
-
-
-
-dft_dmet_surv_all <- combine_clin_gene(
-  dat_gene = dft_gene_comb_all,
-  dat_clin = dft_clin_char
-) %>%
+dft_dmet_surv_all %<>%
   add_specific_dmet_vars(.)
+
 
 dft_surv_consort <- bind_rows(
   dft_surv_consort,
@@ -112,7 +102,6 @@ dft_surv_consort %<>%
   select(bca_subtype_f_simple, state, n) %>%
   arrange(bca_subtype_f_simple, state)
 
-fs::dir_create(here('data', 'survival', 'v2', 'prepared_data'))
 readr::write_rds(
   file = here('data', 'survival', 'v2', 'prepared_data', 'surv_consort_dmet.rds'),
   x = dft_surv_consort
@@ -162,10 +151,4 @@ readr::write_rds(
   x = dft_dmet_surv_her2_pos,
   file = here('data', 'survival', 'v2', 'prepared_data', 'surv_dmet_her2_pos.rds')
 )
-
-
-
-
-
-
 

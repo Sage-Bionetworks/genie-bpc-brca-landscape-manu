@@ -7,7 +7,7 @@ combine_clin_gene <- function(dat_gene_comb, dat_clin) {
     dat_gene_comb,
     dat_clin,
     by = c("record_id", "ca_seq"),
-    multiple = "error"
+    relationship = "one-to-one"
   )
   
   # Add some variables for the sake of interpretability:
