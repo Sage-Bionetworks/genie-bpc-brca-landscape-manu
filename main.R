@@ -45,6 +45,7 @@ source(here('analysis', 'script', 'prepare_data_for_oncokb_annotate.R'))
 source(here('analysis', 'script', 'create_gene_panel_dat.R'))
 source(here('analysis', 'script', 'filter_oncogenic_create_features.R'))
 source(here('analysis', 'script', 'gene_feat_prep.R'))
+source(here('analysis', 'script', 'clin_feature_prep_dmet.R')) # Added since v1.
 source(here('analysis', 'script', 'surv_prep_dmet_2.R'))
 source(here('analysis', 'script', 'surv_fit_dmet_2.R'))
 source(here('analysis', 'script', 'surv_process_results_dmet_2.R'))

@@ -2,8 +2,8 @@
 #' #' @description Combines the data from the clinical curation (CPT dataset)
 #' with the gene features from main GENIE.
 #' @param dat_gene_feat a "long" gene feature dataframe with columns
-#'   cpt_genie_sample_id, feature, value.  Example features are "PTEN_mut or
-#'   TP53_cna", values should be 0 or 1.
+#'   cpt_genie_sample_id, feature, value.  Example features are "PTEN_mut" or
+#'   "TP53_cna", values should be 0 or 1.
 #' @param dat_cpt a subset of the cancer panel test dataset which includes
 #'   samples that meet the inclusion criteria for this analysis (varies).
 #' @param keep_only_first keeps only the first sample if a participant has more
@@ -65,5 +65,6 @@ combine_cpt_gene_feat <- function(
       slice(1) %>%
       ungroup(.)
   }
+  
   return(rtn)
 }
