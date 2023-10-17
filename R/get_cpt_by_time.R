@@ -12,17 +12,24 @@ get_cpt_by_time <- function(
     time_tol = 0,
     always_keep_first = T) {
   if (!all(c('record_id', 'ca_seq', time_var) %in% names(time_dat))) {
-    cli::cli_abort("time_dat must have columns {record_id, ca_seq} and time_var.")
+    cli::cli_abort(
+      "time_dat must have columns record_id, ca_seq and 'time_var'."
+      )
   }
   if (any(time_dat[[time_var]] > 100)) {
-    cli::cli_abort("time_var is assumed to be in years, but values over 100 were detected.  Wrong units?")
+    cli::cli_abort(
+      "time_var is assumed to be in years, but values over 100 were detected.  Wrong units?"
+    )
   }
   
   time_dat <- time_dat %>%
     select(record_id, ca_seq, all_of(time_var))
-  time_dat_max <- time_dat %>% count(record_id, ca_seq, sort = T) %>% pull %>% max
+  time_dat_max <- time_dat %>% 
+    count(record_id, ca_seq, sort = T) %>% 
+    pull %>% 
+    max
   if (time_dat_max > 1) {
-    cli_abort("More than one record per {record_id, ca_seq} in time_dat - these should be unique!")
+    cli_abort("More than one record per record_id, ca_seq in time_dat - these should be unique!")
   }
   
   rtn_dat <- inner_join(

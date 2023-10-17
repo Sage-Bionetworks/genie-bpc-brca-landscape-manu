@@ -18,30 +18,38 @@ dft_clin_char <- readr::read_rds(
     'clin_char.rds'
   )
 )
-
 dft_drug_feas_surv <- readr::read_rds(
   here('data', 'clin_data_cohort', 'drug_feas_surv.rds')
 )
 
 
 
-# Do we actually need this dataset?
-# dft_ca_ind %<>%
-#   mutate(
-#     bca_subtype_f_simple = forcats::fct_na_value_to_level(
-#       f = bca_subtype_f_simple,
-#       level = "(NC or NR)"
-#     )
-#   )
-
-dft_clin_char %<>%
-  # take out some variables that could lead to confusion:
+dft_drug_surv <- dft_drug_feas_surv %>% 
+  filter(crit_all_os) %>%
   select(
-    -contains('os_'), 
-    -contains("pfs_"),
-    -bca_subtype, -bca_subtype_f,
-    -dx_to_dmets_yrs, # already have this in drug feas dataset.
-    -ca_seq # technially not a problem, but every record has just one ID now.
+    -contains("crit"), 
+    -had_met
+  )
+
+dft_gene_feat_wide %<>% rename(cpt_genie_sample_id = sample_id)
+
+
+
+##################################
+### Merge in the clinical data ###
+##################################
+
+dft_clin_char_lim <- dft_clin_char %>%
+  # Only need some of these:
+  select(
+    record_id,
+    ca_seq,
+    bca_subtype_f_simple,
+    age_dx, # don't need the ~centered version - we'll recalculate at drug timing.
+    white,
+    hispanic,
+    birth_year_c,
+    stage_dx_iv_num
   ) %>%
   mutate(
     bca_subtype_f_simple = forcats::fct_na_value_to_level(
@@ -50,160 +58,244 @@ dft_clin_char %<>%
     )
   )
 
-
-
 dft_drug_surv <- dft_drug_feas_surv %>% 
   filter(crit_all_os) %>%
   select(-contains("crit"))
 
 dft_drug_surv <- left_join(
   dft_drug_surv,
-  dft_clin_char,
+  dft_clin_char_lim,
   by = "record_id"
-)
+) 
+dft_drug_surv %<>% relocate(ca_seq, .after = record_id)
 
-dft_drug_surv %>%
+dft_drug_surv %<>%
   mutate(
     # this age is not exact.  It's a best guess since age_dx is rounded.
-    age_drug_start = age_dx + drug_dx_start_int_yrs
+    # + 0.5 because the average person with an integer age of 36 is about 36.5
+    #  years old.  Again, this is just approximate, but no reason to be wantonly
+    #  incorrect.
+    age_drug_start = age_dx + drug_dx_start_int_yrs + 0.5
   ) %>%
   # just to avoid mistakes:
   select(-age_dx)
 
-
-  
-
-
-
-
-
-
-
-
-
-
-
-# POC: do the CDK inhibitor case.
-dft_drug_feas_cdk <- dft_drug_feas_surv %>%
-  filter(class_comp %in% 'CDK inhibitor') %>%
-  # participants who meet all time-based criteria for the OS analysis:
-  filter(crit_all_os) %>%
-  select(record_id, drug_dx_start_int_yrs)
-# Function below requires ca_seq, which we can add back in:
-dft_drug_feas_cdk %<>%
-  left_join(
-    .,
-    select(dft_ca_ind, record_id, ca_seq),
-    by = c("record_id")
-  )
-# Get all NGS which occur prior to drug use.
-dft_cpt_drug <- get_cpt_by_time(
-  time_dat = dft_drug_feas_cdk,
-  time_var = "drug_dx_start_int_yrs",
-  cpt_dat = dft_cpt,
-  always_keep_first = F
-)
-
-dft_drug_feas_cdk %<>% select(-ca_seq)
-
-dft_cpt_drug %<>%
-  select(
-    record_id, 
-    ca_seq, 
-    cpt_genie_sample_id,
-    dx_cpt_rep_yrs,
-    is_first_cpt,
-    cpt_before_t,
-    cpt_seq_assay_id
-  )
-
-
-dft_clin_char <- dft_pt %>%
+# Fix the survival variables for this application:
+dft_drug_surv %<>%
   mutate(
-    white = case_when(
-      is.na(naaccr_ethnicity_code) ~ NA_real_,
-      naaccr_race_code_primary %in% "White" ~ 1,
-      T ~ 0
-    ),
-    hispanic = case_when(
-      is.na(naaccr_ethnicity_code) ~ NA_real_,
-      naaccr_ethnicity_code %in% "Non-Spanish; non-Hispanic" ~ 0,
-      T ~ 1
+    tt_os_drug_start_yrs = tt_os_dx_yrs - drug_dx_start_int_yrs,
+    # one intermediary variable to get PFS right:
+    tt_drug_start_reg_start = drug_dx_start_int_yrs - dx_reg_start_int_yrs,
+    tt_pfs_i_and_m_drug_start_yrs = tt_reg_pfs_i_and_m_g_yrs -
+      tt_drug_start_reg_start
+  ) 
+dft_drug_surv %<>%
+  # remove anything which could cause confusion:
+  select(
+    -had_met,
+    -tt_drug_start_reg_start,
+    -matches("reg_"),
+    -tt_os_dx_yrs
+  )
+
+# A sanity check here:
+chk_os_pfs_times <- dft_drug_surv %>%
+  mutate(diff_os_pfs = tt_os_drug_start_yrs - tt_pfs_i_and_m_drug_start_yrs) %>%
+  filter(diff_os_pfs < -10^-5) %>%
+  select(
+    class_comp, 
+    record_id, 
+    diff_os_pfs, 
+    tt_os_drug_start_yrs,
+    tt_pfs_i_and_m_drug_start_yrs
+  )
+if (nrow(chk_os_pfs_times) > 0) {
+  print(chk_os_pfs_times)
+  cli::cli_abort("Time to OS is less than time to PFS for some rows.")
+} 
+
+
+
+
+########################################
+### Merge in genomic + NGS test data ###
+########################################
+
+# At this point we'll be working with functions that will work better with rows
+# defined by unique cases.  As a result, I'll split the dataframe up into 
+# a list column.
+
+dft_drug_surv_nest <- dft_drug_surv %>%
+  tidyr::nest(.by = class_comp) %>%
+  rename(surv = data) %>%
+  arrange(class_comp)
+
+dft_drug_surv_nest %<>%
+  mutate(
+    drug_time = purrr::map(
+      .x = surv,
+      # for each row, create a dataframe that has just the drug start time
+      #  and required key columns.
+      .f = (function(x) {
+        x %>% select(record_id, ca_seq, drug_dx_start_int_yrs) 
+      })
+    )
+  )
+
+dft_drug_surv_nest %<>%
+  mutate(
+    cpt_before_drug = purrr::map(
+      .x = drug_time,
+      .f = (function(x) {
+        dat <- get_cpt_by_time(
+          time_dat = x,
+          time_var = "drug_dx_start_int_yrs",
+          cpt_dat = dft_cpt,
+          time_tol = 0.001,
+          always_keep_first = F
+        )
+        return(dat)
+      })
+    )
+  )
+
+# Filter the CPT tests down the most recent result.
+# If there are two on the same day we prioritize the non-primary (metastatic) 
+#.  sample.  If there are two on the same day of the same type we take
+#   the highest sequence number anyway, which is arbitrary.
+# Also have a selection at the end to limit to columns we care about.
+dft_drug_surv_nest %<>%
+  mutate(
+    cpt_before_drug_most_recent = purrr::map(
+      .x = cpt_before_drug,
+      .f = (function(x) {
+        x %<>%
+          mutate(is_metastatic = str_detect(sample_type, "Metas"))
+        
+        x %<>%
+          group_by(record_id) %>%
+          arrange(desc(cpt_number), desc(is_metastatic)) %>%
+          slice(1) %>%
+          ungroup(.)
+          
+        x %<>%
+          select(
+            record_id, 
+            ca_seq, 
+            cpt_number, 
+            cpt_genie_sample_id,
+            cpt_seq_assay_id
+          )
+        
+        return(x)
+      })
+    )
+  )
+
+
+# For each NGS test, bring in the genomic results:
+dft_drug_surv_nest %<>%
+  mutate(
+    gene_feat = purrr::map(
+      .x = cpt_before_drug_most_recent,
+      .f = (function(x) {
+        rtn <-  combine_cpt_gene_feat_wide(
+          dat_cpt = x,
+          dat_gene_feat_wide = dft_gene_feat_wide,
+          keep_only_first = F, # should already be unique - just don't mess with it.
+          impute_zero_if_not_in_gene_feat = T
+        )
+        return(rtn)
+      })
+    )
+  ) 
+
+# Merge the genetic results into the survival dataset:
+dft_drug_surv_nest %<>%
+  mutate(
+    surv_with_gene = purrr::map2(
+      .x = surv,
+      .y = gene_feat,
+      .f = (function(x,y) {
+        left_join(
+          x, y, by = c("record_id", "ca_seq"), relationship = "one-to-one"
+        )
+      })
+    )
+  ) 
+# Checking rows/cols can be helpful here:
+# select(dft_drug_surv_nest, surv, gene_feat, surv_with_gene)
+
+# At this point everything is merged in, we just need one list col:
+dft_drug_surv_nest %<>%
+  select(
+    class_comp,
+    dat_surv = surv_with_gene
+  )
+
+# Final step:  Have to filter each survival dataset down to the 
+#   genetic features which are altered somewhat frequently:
+dft_drug_surv_nest %<>%
+  mutate(
+    # dat_surv_old = dat_surv,
+    dat_surv = purrr::map(
+      .x = dat_surv,
+      # filter the genetic features down to those which are
+      #   altered in at least 2% of the samples in the data:
+      .f = (function(x) {
+        filter_gene_features(
+          dat = x,
+          prop_filter = 0.02
+        )
+      })
+    )
+  )
+
+
+
+
+
+
+
+
+# Everything should be complete here:
+chk_miss <- dft_drug_surv_nest %>%
+  mutate(
+    miss_chk = purrr::map(
+      .x = dat_surv,
+      .f = (function(x) {
+        x %>%
+          # assay_id is missing in some cases - I'm choosing
+          #   to ignore it in my check because it doesn't impact
+          #   our ability to fit models.
+          select(-cpt_seq_assay_id) %>%
+          filter(
+            # a bit confusing here:  the .x refers to a column.
+            # unlike the .x above, which refers to a dataframe in the list column.
+            if_any(.cols = everything(), ~is.na(.x))
+          )
+      })
     )
   ) %>%
-  select(record_id, white, hispanic, birth_year)
+  select(class_comp, miss_chk) %>%
+  unnest(., cols = miss_chk) 
+if (nrow(chk_miss) > 0) {
+  cli::cli_abort("Missing rows exist in dft_drug_surv")
+}
 
-dft_clin_char <- dft_ca_ind %>%
-  select(
-    record_id, 
-    ca_seq, # works because we've already selected one row per person.
-    contains("bca_subtype"), # several versions.
-    age_dx, 
-    stage_dx_iv,
-    dmets_stage_i_iii,
-    dx_to_dmets_yrs,
-    os_dx_status, 
-    tt_os_dx_yrs,
-    # skipping for now:
-    # pfs_i_and_m_adv_status,
-    # tt_pfs_i_and_m_adv_yrs
-  ) %>%
-  full_join(., dft_clin_char, by = "record_id") 
-
-# drug specific:
-dft_clin_char <-
-  left_join(
-    dft_drug_feas_cdk,
-    dft_clin_char,
-    by = "record_id"
+readr::write_rds(
+  x = dft_drug_surv_nest,
+  file = here(
+    'data', 'survival', 'drug', 'prepared_data',
+    'drug_surv_nest.rds'
   )
-
-dft_clin_char %<>% 
-  mutate(
-    tt_os_drug_yrs = tt_os_dx_yrs - drug_dx_start_int_yrs
-  ) %>%
-  select(-tt_os_dx_yrs) # avoid mistakes
+)
     
 
 
 
 
-# For the analyses of the drug it makes the most sense to me to keep the most recent test:
-dft_gene_comb_drug <- combine_cpt_gene_feat(
-  dat_gene_feat = dft_gene_feat,
-  dat_cpt = dft_cpt_drug,
-  keep_only_first = F
-) %>%
-  group_by(record_id) %>%
-  arrange(dx_cpt_rep_yrs) %>%
-  slice(n()) %>%
-  ungroup
-
-dft_dmet_surv_drug <- combine_clin_gene(
-  dat_gene = dft_gene_comb_drug,
-  dat_clin = dft_clin_char
-) 
-
-# We've already done all the time filtering at this point, no need to do it again.
-
-
-
-
-# Before we filter the genes for variance/proportions, make the subgroup datasets:
-dft_dmet_surv_drug %<>% 
-  filter_gene_features(., 0.02)
-
-
-readr::write_rds(
-  x = dft_dmet_surv_drug,
-  file = here('data', 'survival', 'drug', 'prepared_data', 'dmet_surv_cdk.rds')
-)
   
-
-
-
-
-
 
 
 
