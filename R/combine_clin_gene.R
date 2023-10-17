@@ -10,12 +10,12 @@ combine_clin_gene <- function(dat_gene_comb, dat_clin) {
     relationship = "one-to-one"
   )
   
-  # Add some variables for the sake of interpretability:
-  rtn <- rtn %>%
-    mutate(
-      stage_dx_iv_num = if_else(stage_dx_iv %in% "Stage IV", 1, 0),
-      age_dx_c = age_dx - 40, # approximately centered.
-      birth_year_c = birth_year - 1970, # approximately centered.
-    )
+  # Note: I added these to an earlier step - seemed off here.
+  # rtn <- rtn %>%
+  #   mutate(
+  #     stage_dx_iv_num = if_else(stage_dx_iv %in% "Stage IV", 1, 0),
+  #     age_dx_c = age_dx - 40, # approximately centered.
+  #     birth_year_c = birth_year - 1970, # approximately centered.
+  #   )
   return(rtn)
 }

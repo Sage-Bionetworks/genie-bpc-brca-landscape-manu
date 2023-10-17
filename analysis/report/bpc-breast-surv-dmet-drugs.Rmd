@@ -70,7 +70,61 @@ Observations:
 - Some of these drug classes are probably too small to do a robust analysis on.
 - The number of people who used a drug is poorly related to the number who could be included in an analysis.
 
-**PFS note:** PFS is complicated, because some people did not start the drug at the same time as the regimen started, so the derived variables in the datasets may not be sufficient.  However, we can say for sure that `n_pfs` will never be greater than `n_os` because $Y_{pfs} <= Y_{os}$ by definition.
+
+```{r}
+dfp_pfs_feas_sum <- dft_drug_feas %>% 
+  filter(had_met & crit_all_os) %>%
+  mutate(
+    # Use a tolerance of 0.001 yrs = 0.3 days here to avoid rounding erros.
+    drug_after_reg = abs(
+      drug_dx_start_int_yrs - dx_reg_start_int_yrs
+    ) > 0.001,
+    prog_before_drug = tt_reg_pfs_i_and_m_dx_yrs < drug_dx_start_int_yrs
+  ) %>%
+  group_by(class_comp) %>%
+  summarize(
+    n_elig = n(),
+    n_drug_after_reg = sum(drug_after_reg),
+    n_prog_before_drug = sum(prog_before_drug),
+    n_problem = sum(prog_before_drug & drug_after_reg)
+  )
+```
+
+
+
+
+```{r, eval = F}
+
+```
+
+
+## PFS feasibility
+
+Our dataset contains derived variables for survival from start of drug regimen for those that have metastases.  Because we're interested in indexing from select drugs, rather than the regimen containing that drug, these is potentially an issue in using these variables for our analyses.  Specifically, if the following conditions are both met for any subjects meeting inclusion criteria for an analysis, we would have a problem:
+
+1. The drug date and regimen date are not the same (drug should be later).
+2. A progression event is noted for the regimen before the drug is started.
+
+In this case we would not have access to the time from drug start to progression without recalculation of the variable.  Removing participants who meet these criteria from the analysis has an obvious bias potential by filtering out people with systematically low progression times.
+
+We will start by simply calculating the number of people who meet these criteria (`n_problem`):
+
+```{r}
+dfp_pfs_feas_sum %>%
+  rename(` ` = class_comp) %>%
+  flextable(.) %>%
+  autofit(.)
+```
+
+**Observations:**
+
+- For all drugs except CDK inhibitors and IC inhibitors there are no people who meet both criteria.  Therefore, we should be fine to use the regimen progression variables (recalculated from drug start) in place of variables that index specifically from the drug start time.
+-  
+
+
+*Sidenote:*  Two long term fixes for this issue, to allow calculation of PFS from the start of a particular drug, include (1) adding PFS variables for each drug or (2) making the code used to gather PFS events available.  The latter has the advantage of extending to other types of events.
+
+
 
 ## Example analysis
 

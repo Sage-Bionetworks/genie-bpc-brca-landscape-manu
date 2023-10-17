@@ -59,6 +59,7 @@ dft_dmet_surv_all <- combine_clin_gene(
   dat_clin = dft_clin_char
 ) 
 
+
 # Function only used once - added for clarity.
 add_specific_dmet_vars <- function(dat) {
   dat %<>% mutate(

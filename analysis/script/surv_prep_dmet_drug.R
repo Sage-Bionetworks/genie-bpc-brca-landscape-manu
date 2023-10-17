@@ -2,35 +2,78 @@ library(purrr); library(here); library(fs);
 purrr::walk(.x = fs::dir_ls(here('R')), .f = source)
 
 
-dft_drug_feas_surv <- readr::read_rds(
-  here('data', 'clin_data_cohort', 'drug_feas_surv.rds')
-)
-dft_pt <- readr::read_rds(
-  here('data', 'clin_data_cohort', 'dft_pt.rds')
-)
-dft_ca_ind <- readr::read_rds(
-  here('data', 'clin_data_cohort', 'dft_ca_ind.rds')
-)
+# dft_ca_ind <- readr::read_rds(
+#   here('data', 'clin_data_cohort', 'dft_ca_ind.rds')
+# )
 dft_cpt <- readr::read_rds(
   here('data', 'clin_data_cohort', 'dft_cpt.rds')
-)
-dft_reg <- readr::read_rds(
-  here('data', 'clin_data_cohort', 'dft_reg.rds')
 )
 dft_gene_feat_wide <- readr::read_rds(
   here('data', 'genomic', 'gene_feat_oncogenic.rds')
 )
+# Clinical characteristics already processed some:
+dft_clin_char <- readr::read_rds(
+  here(
+    'data', 'survival', 'v2', 'prepared_data',
+    'clin_char.rds'
+  )
+)
+
+dft_drug_feas_surv <- readr::read_rds(
+  here('data', 'clin_data_cohort', 'drug_feas_surv.rds')
+)
 
 
 
+# Do we actually need this dataset?
+# dft_ca_ind %<>%
+#   mutate(
+#     bca_subtype_f_simple = forcats::fct_na_value_to_level(
+#       f = bca_subtype_f_simple,
+#       level = "(NC or NR)"
+#     )
+#   )
 
-dft_ca_ind %<>% 
+dft_clin_char %<>%
+  # take out some variables that could lead to confusion:
+  select(
+    -contains('os_'), 
+    -contains("pfs_"),
+    -bca_subtype, -bca_subtype_f,
+    -dx_to_dmets_yrs, # already have this in drug feas dataset.
+    -ca_seq # technially not a problem, but every record has just one ID now.
+  ) %>%
   mutate(
     bca_subtype_f_simple = forcats::fct_na_value_to_level(
       f = bca_subtype_f_simple,
       level = "(NC or NR)"
     )
   )
+
+
+
+dft_drug_surv <- dft_drug_feas_surv %>% 
+  filter(crit_all_os) %>%
+  select(-contains("crit"))
+
+dft_drug_surv <- left_join(
+  dft_drug_surv,
+  dft_clin_char,
+  by = "record_id"
+)
+
+dft_drug_surv %>%
+  mutate(
+    # this age is not exact.  It's a best guess since age_dx is rounded.
+    age_drug_start = age_dx + drug_dx_start_int_yrs
+  ) %>%
+  # just to avoid mistakes:
+  select(-age_dx)
+
+
+  
+
+
 
 
 
@@ -141,7 +184,7 @@ dft_dmet_surv_drug <- combine_clin_gene(
   dat_clin = dft_clin_char
 ) 
 
-# We've already done all the time filterng at this point, no need to do it again.
+# We've already done all the time filtering at this point, no need to do it again.
 
 
 

@@ -12,6 +12,11 @@ dft_ca_ind <- read_rds(
 dft_cpt <- read_rds(
   file = here('data', 'clin_data_cohort', 'dft_cpt.rds')
 )
+dft_reg <- read_rds(
+  file = here('data', 'clin_data_cohort', 'dft_reg.rds')
+)
+
+
 
 
 # First step:  get the first use of each drug class by each person.
@@ -115,13 +120,13 @@ dft_event_timing_dx <- dft_ca_ind %>%
   ) %>%
   mutate(
     had_met = if_else(is.na(dx_dmet_int), F, T),
-    tt_pfs_i_and_m_dx_days = dx_dmet_int*365.25 + tt_pfs_i_and_m_adv_days,
-    tt_pfs_i_and_m_dx_yrs = tt_pfs_i_and_m_dx_days/365.25
+    # tt_pfs_i_and_m_dx_days = dx_dmet_int*365.25 + tt_pfs_i_and_m_adv_days,
+    # tt_pfs_i_and_m_dx_yrs = tt_pfs_i_and_m_dx_days/365.25
   ) %>%
   select(
     record_id, 
-    tt_os_dx_yrs,
-    tt_pfs_i_and_m_dx_yrs
+    tt_os_dx_yrs
+    # tt_pfs_i_and_m_dx_yrs
   )
 
 dft_clin_timing <- 
@@ -137,6 +142,29 @@ dft_drug_feas <- left_join(
   by = "record_id",
   relationship = "many-to-one"
 )
+
+
+
+# As a start to PFS feasibility, I want to add in the regimen start time
+#   and progression indicators.
+# PFS may need to be recalculated depending on the timing of drugs, regimens,
+#   and progressions.
+dft_drug_feas <- dft_reg %>%
+  select(
+    record_id, regimen_number, dx_reg_start_int_yrs,
+    # adding regimen to these because it's ambiguous to me:
+    reg_pfs_i_and_m_g_status = pfs_i_and_m_g_status,
+    tt_reg_pfs_i_and_m_g_yrs = tt_pfs_i_and_m_g_yrs
+  ) %>%
+  mutate(
+    tt_reg_pfs_i_and_m_dx_yrs = dx_reg_start_int_yrs + tt_reg_pfs_i_and_m_g_yrs
+  ) %>%
+  left_join(
+    dft_drug_feas,
+    ., 
+    by = c('record_id', 'regimen_number'),
+    relationship = "many-to-one"
+  ) 
 
 
 # Add in the criteria, "crit_", for OS and PFS respectively.
@@ -155,29 +183,31 @@ dft_drug_feas %<>%
       dx_first_cpt_int < tt_os_dx_yrs,
       T, F, F
     ),
-    crit_pfs_ngs_lt_event = if_else(
-      dx_first_cpt_int < tt_pfs_i_and_m_dx_yrs,
-      T, F, F
-    ),
+    # PFS still needs analysis/work, leaving out for now:
+    # crit_pfs_ngs_lt_event = if_else(
+    #   dx_first_cpt_int < tt_pfs_i_and_m_dx_yrs,
+    #   T, F, F
+    # ),
     crit_os_drug_lt_event = if_else(
       drug_dx_start_int_yrs <= tt_os_dx_yrs,
       T, F, F
     ),
-    crit_pfs_drug_lt_event = if_else(
-      drug_dx_start_int_yrs <= tt_pfs_i_and_m_dx_yrs,
-      T, F, F
-    )
+    # crit_pfs_drug_lt_event = if_else(
+    #   drug_dx_start_int_yrs <= tt_pfs_i_and_m_dx_yrs,
+    #   T, F, F
+    # )
   )
 
 dft_drug_feas %<>%
   mutate(
     crit_both = crit_met_lt_drug & crit_ngs_lt_drug,
     crit_all_os = crit_both & crit_os_ngs_lt_event & crit_os_drug_lt_event,
-    crit_all_pfs = crit_both & crit_pfs_ngs_lt_event & crit_pfs_drug_lt_event
+    # crit_all_pfs = crit_both & crit_pfs_ngs_lt_event & crit_pfs_drug_lt_event
   ) %>%
   select(
     -crit_both # was just added to be concise above.
   )
+
 
 write_rds(
   x = dft_drug_feas,
@@ -195,7 +225,7 @@ dft_drug_feas_dmet_sum <- dft_drug_feas %>%
     # PFS has to be reworked, leaving out for now:
     # n_pfs_dmet = sum(crit_all_pfs)
   )
-    
+
 write_rds(
   x = dft_drug_feas_dmet_sum,
   file = here('data', 'clin_data_cohort',
@@ -215,7 +245,7 @@ dft_drug_feas %>%
     dx_dmet_int,
     dx_first_cpt_int,
     tt_os_dx_yrs,
-    tt_pfs_i_and_m_dx_yrs
+    tt_reg_pfs_i_and_m_dx_yrs
   ) %>%
   pivot_longer(
     cols = -record_id,
@@ -230,15 +260,6 @@ dft_drug_feas %>%
   facet_wrap(vars(var), ncol = 1)
     
   
-
-# dft_drug_feas %>%
-#   group_by(class_comp) %>%
-#   summarize(
-#     across(
-#       contains("crit"),
-#       .fns = (function(x) sum(x, na.rm = T))
-#     )
-#   )
 
 
 

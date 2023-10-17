@@ -95,10 +95,12 @@ dft_clin_char %<>%
     # pfs is already relative to stage IV or dmet date.
   ) 
 
-# to avoid errors, we will trim out the variables relative to diagnosis.
-# It would be highly unusual to do an analysis from diagnosis in the cohort
-# who goes on to metastasize - leaving these variables in increases the chances
-# that I will make that mistake.
+dft_clin_char %<>% 
+  mutate(
+    stage_dx_iv_num = if_else(stage_dx_iv %in% "Stage IV", 1, 0),
+    age_dx_c = age_dx - 40, # approximately centered.
+    birth_year_c = birth_year - 1970,
+  )
 
 
 readr::write_rds(
