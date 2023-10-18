@@ -1,7 +1,7 @@
 # Description: Fit the predictors of survival from the start
 #   of select drug classes
 
-n_boot <- 300 
+n_boot <- 300
 boot_draw_seed <- 102039
 
 library(purrr); library(fs); library(here);
@@ -38,7 +38,7 @@ dft_drug_surv_nest %<>%
 #   the particular drug in the regimen we want to study.
 # At the time of this writing this affects a single case in two drug classes,
 #   which seems like an acceptable starting point.
-dft_drug_surv_nest %>%
+dft_drug_surv_nest %<>%
   mutate(
     dat_surv_pfs = purrr::map(
       .x = dat_surv,
@@ -98,10 +98,10 @@ dft_drug_surv_nest %<>%
 dft_drug_surv_nest %<>%
   mutate(
     boots_pfs = purrr::map(
-      .x = dat_surv,
+      .x = dat_surv_pfs,
       .f = (function(x) {
         surv_fit_dmet_wrap_no_lt(
-          dat = dat_surv_pfs, 
+          dat = x,
           boot_rep = n_boot, 
           main_seed = boot_draw_seed,
           additional_features = vec_drug_surv_confounders,
@@ -116,10 +116,10 @@ dft_drug_surv_nest %<>%
 dft_drug_surv_nest %<>%
   mutate(
     boots_pfs_no_conf = purrr::map(
-      .x = dat_surv,
+      .x = dat_surv_pfs,
       .f = (function(x) {
         surv_fit_dmet_wrap_no_lt(
-          dat = dat_surv_pfs,
+          dat = x,
           boot_rep = n_boot, 
           main_seed = boot_draw_seed,
           additional_features = character(0),
@@ -132,11 +132,12 @@ dft_drug_surv_nest %<>%
 
 
 
+toc()
 
 
 # Save all the fitted models as RDS:
 readr::write_rds(
-  x = boot_models_cdk,
+  x = dft_drug_surv_nest,
   file = here(write_folder, 'fit_dmet_drug_nest.rds')
 )
 

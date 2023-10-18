@@ -1,20 +1,15 @@
 # Description: Process the raw model fits into results.
 # Author: Alex Paynter
 
-
-
 library(fs); library(purrr); library(here);
 purrr::walk(.x = fs::dir_ls(here("R")), .f = source)
 
-
 raw_folder <- here("data", "survival", 'drug', 'fit_outputs')
-# Create the folder if it does not exist:
-fs::dir_create('data', 'survival', 'drug', 'fit_outputs', 'fit_summary')
-output_folder <- here('data', 'survival', 'drug', 'fit_outputs', 'fit_summary')
+# now that I'm using nested models this is totally tractable:
+output_folder <- here('data', 'survival', 'drug', 'fit_outputs')
 
-
-boot_models_dmet_cdk <- readr::read_rds(
-  here(raw_folder, "fit_dmet_cdk.rds")
+dft_drug_surv_nest <- readr::read_rds(
+  here(raw_folder, "fit_dmet_drug_nest.rds")
 )
 
 resample_dmet_wrap <- function(dat) {
@@ -25,9 +20,35 @@ resample_dmet_wrap <- function(dat) {
   )
 }
 
-dft_coef_cdk <- resample_dmet_wrap(
-  dat = boot_models_dmet_cdk
-)
+dft_drug_surv_nest %<>%
+  mutate(
+    coef_os = purrr::map(
+      .x = boots_os,
+      .f = resample_dmet_wrap
+    ),
+    coef_os_no_conf = purrr::map(
+      .x = boots_os_no_conf,
+      .f = resample_dmet_wrap
+    ),
+    
+    coef_pfs = purrr::map(
+      .x = boots_pfs,
+      .f = resample_dmet_wrap
+    ),
+    coef_pfs_no_conf = purrr::map(
+      .x = boots_pfs_no_conf,
+      .f = resample_dmet_wrap
+    )
+  )
+
+
+
+# dft_drug_surv_nest %>% slice(1) %>% pull(coef_os) %>% `[[`(.,1) %>%
+#   arrange(desc(stability))
+
+# Glorious nested data makes me feel OK imbedding the plots right here:
+
+
 
 
 # Write the outputs:
