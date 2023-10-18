@@ -58,6 +58,21 @@ dft_clin_char_lim <- dft_clin_char %>%
     )
   )
 
+# do the dummy coding here (moved up from the surv_fit script as compared with surv_prep_dmet).
+dft_clin_char_lim %<>%
+  mutate(
+    bca = case_when(
+      bca_subtype_f_simple %in% "HR+, HER2-" ~ "hr_pos_her2_neg",
+      bca_subtype_f_simple %in% "HER2+" ~ "her2_pos",
+      bca_subtype_f_simple %in% "Triple Negative" ~ "trip_neg",
+      bca_subtype_f_simple %in% "(NC or NR)" ~ "nc_nr",
+      T ~ "error"
+    )
+  ) %>%
+  dummy_cols(., select_columns = "bca") %>% 
+  # choosing hr_pos_her2_neg as the reference.
+  select(-bca, -bca_hr_pos_her2_neg) 
+
 dft_drug_surv <- dft_drug_feas_surv %>% 
   filter(crit_all_os) %>%
   select(-contains("crit"))
@@ -89,13 +104,25 @@ dft_drug_surv %<>%
     tt_pfs_i_and_m_drug_start_yrs = tt_reg_pfs_i_and_m_g_yrs -
       tt_drug_start_reg_start
   ) 
+
 dft_drug_surv %<>%
+  rename(pfs_i_and_m_g_status = reg_pfs_i_and_m_g_status) %>%
   # remove anything which could cause confusion:
   select(
     -had_met,
     -tt_drug_start_reg_start,
-    -matches("reg_"),
+    -matches('reg'),
     -tt_os_dx_yrs
+  ) 
+
+dft_drug_surv %<>%
+  relocate(
+    os_g_status, 
+    .before = tt_os_drug_start_yrs
+  ) %>%
+  relocate(
+    pfs_i_and_m_g_status,
+    .before = tt_pfs_i_and_m_drug_start_yrs
   )
 
 # A sanity check here:

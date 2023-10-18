@@ -120,8 +120,6 @@ dft_event_timing_dx <- dft_ca_ind %>%
   ) %>%
   mutate(
     had_met = if_else(is.na(dx_dmet_int), F, T),
-    # tt_pfs_i_and_m_dx_days = dx_dmet_int*365.25 + tt_pfs_i_and_m_adv_days,
-    # tt_pfs_i_and_m_dx_yrs = tt_pfs_i_and_m_dx_days/365.25
   ) %>%
   select(
     record_id, 
@@ -154,7 +152,9 @@ dft_drug_feas <- dft_reg %>%
     record_id, regimen_number, dx_reg_start_int_yrs,
     # adding regimen to these because it's ambiguous to me:
     reg_pfs_i_and_m_g_status = pfs_i_and_m_g_status,
-    tt_reg_pfs_i_and_m_g_yrs = tt_pfs_i_and_m_g_yrs
+    tt_reg_pfs_i_and_m_g_yrs = tt_pfs_i_and_m_g_yrs,
+    os_g_status, # forgot this - adding back in now.
+    pfs_i_and_m_g_status
   ) %>%
   mutate(
     tt_reg_pfs_i_and_m_dx_yrs = dx_reg_start_int_yrs + tt_reg_pfs_i_and_m_g_yrs

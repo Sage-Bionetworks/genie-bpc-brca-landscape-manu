@@ -7,3 +7,4 @@ library(purrr); library(here); library(fs);
 purrr::walk(.x = fs::dir_ls('R'), .f = source)
 
 fs::dir_create(here('data', 'survival', 'v2', 'prepared_data'))
+fs::dir_create(here('data', 'survival', 'drug', 'fit_outputs'))
