@@ -51,8 +51,8 @@ source(here('analysis', 'script', 'surv_prep_dmet_2.R'))
 source(here('analysis', 'script', 'surv_fit_dmet_2.R'))
 source(here('analysis', 'script', 'surv_process_results_dmet_2.R'))
 rmarkdown::render(
-  input = here('analysis', 'report', 'bpc-breast-surv_dmet.Rmd'),
-  output_file = '02-bpc-breast_surv-dmet.html',
+  input = here('analysis', 'report', 'bpc-breast-surv-dmet_2.Rmd'),
+  output_file = '02-bpc-breast-surv-dmet-v2.pdf',
   output_dir = here('output')
 )
 
@@ -69,13 +69,10 @@ source(here('analysis', 'script', 'surv_fit_drug.R'))
 source(here('analysis', 'script', 'surv_process_results_drug.R'))
 
 rmarkdown::render(
-  input = here('analysis', 'report', 'bpc-breast-surv_dmet.Rmd'),
-  output_file = '02-bpc-breast_surv-dmet.html',
+  input = here('analysis', 'report', 'bpc-breast-surv-dmet-drugs.Rmd'),
+  output_file = '03-bpc-breast-surv-dmet-drugs.html',
   output_dir = here('output')
 )
 
 
 
-# source(here('analysis', 'scripts', 'upload_outputs_synapse.R'))
-
-source(here('analysis', 'script', 'surv_prep_dmet_2.R'))

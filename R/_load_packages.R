@@ -27,6 +27,7 @@ library(ggplot2)
 library(ggrepel)
 library(ggtext)
 library(ggsurvfit)
+library(cowplot)
 
 library(knitr)
 library(rmarkdown)
