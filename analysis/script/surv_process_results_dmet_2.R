@@ -7,10 +7,8 @@ library(fs); library(purrr); library(here);
 purrr::walk(.x = fs::dir_ls(here("R")), .f = source)
 
 
-raw_folder <- here("data", "survival", 'drug', 'fit_outputs')
-# Create the folder if it does not exist:
-fs::dir_create('data', 'survival', 'drug', 'fit_outputs', 'fit_summary')
-output_folder <- here('data', 'survival', 'drug', 'fit_outputs', 'fit_summary')
+raw_folder <- here("data", "survival", 'v2', 'fit_outputs')
+output_folder <- here('data', 'survival', 'v2', 'fit_outputs', 'fit_summary')
 
 
 boot_models_dmet_all <- readr::read_rds(
@@ -77,6 +75,37 @@ dft_coef_dmet_os_hr_pos_her2_neg_no_conf <- resample_dmet_wrap(
 dft_coef_dmet_os_her2_pos_no_conf <- resample_dmet_wrap(
   dat = boot_models_dmet_her2_pos_no_conf
 )
+
+
+
+# Rename some of the coefficients (collaborator preference):
+dft_coef_dmet_os_all %<>% 
+  mutate(term = manu_term_rename_helper(term))
+dft_coef_dmet_os_all_no_conf %<>% 
+  mutate(term = manu_term_rename_helper(term))
+
+dft_coef_dmet_os_her2_pos %<>% 
+  mutate(term = manu_term_rename_helper(term))
+dft_coef_dmet_os_her2_pos_no_conf %<>% 
+  mutate(term = manu_term_rename_helper(term))
+
+dft_coef_dmet_os_hr_pos_her2_neg %<>% 
+  mutate(term = manu_term_rename_helper(term))
+dft_coef_dmet_os_hr_pos_her2_neg_no_conf %<>% 
+  mutate(term = manu_term_rename_helper(term))
+
+dft_coef_dmet_os_trip_neg %<>% 
+  mutate(term = manu_term_rename_helper(term))
+dft_coef_dmet_os_trip_neg_no_conf %<>% 
+  mutate(term = manu_term_rename_helper(term))
+
+
+
+
+
+
+
+
 
 # Write the outputs:
 write_wrap_surv_sum <- function(obj, name) {

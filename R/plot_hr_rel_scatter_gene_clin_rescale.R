@@ -17,6 +17,8 @@ plot_hr_rel_scatter_gene_clin_rescale <- function(
         str_detect(term, "_lof$") ~ "Genetic",
         str_detect(term, "_mut$") ~ "Genetic",
         str_detect(term, "_cna$") ~ "Genetic",
+        # Amp is the same as CNA in this analysis, renamed for collaborator preference
+        str_detect(term, "_amp$") ~ "Genetic",
         str_detect(term, "_fus$") ~ "Genetic",
         T ~ "Clinical"
       ),

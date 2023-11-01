@@ -100,6 +100,8 @@ dft_coef_dmet_os_her2_pos %<>% mutate(hr = exp(log_hr))
 dft_coef_dmet_os_hr_pos_her2_neg %<>% mutate(hr = exp(log_hr))
 dft_coef_dmet_os_trip_neg %<>% mutate(hr = exp(log_hr))
 
+# Change the names on the coefficients per request:
+
 
 
 ```
@@ -212,7 +214,7 @@ gg_surv_dmet_her2_pos_PIK3CA
 
 
 
-#OS from dmet (triple negative)
+# OS from dmet (triple negative)
 
 ---
 
