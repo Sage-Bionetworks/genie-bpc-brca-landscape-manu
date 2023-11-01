@@ -316,3 +316,21 @@ tib_extract(dft_drug_surv_nest, "pi3k pathway inhibitor", "plot_mod_comp")
 ```
 
 
+```{r, eval = F}
+# looking into something from last week:
+dft_drug_feas %>%
+  filter(class_comp %in% "endocrine") %>%
+  summarize(
+    across(
+      .cols = c(contains("crit_"), had_met),
+      .fns = function(x) {
+        d <- length(x)
+        n <- sum(x, na.rm = T)
+        return(paste0(n, "/", d, "(", round(n/d*100, 0), "%)"))
+      }
+    )
+  ) %>%
+  glimpse
+
+```
+
