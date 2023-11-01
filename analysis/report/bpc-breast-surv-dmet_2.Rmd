@@ -216,10 +216,18 @@ gg_mod_comp_her2_pos
 
 The group wanted to see plots for PIK3CA as that was a surprising omission from the stably selected features.
 
+Added ERBB2 mutations plot in response to Oct 2023 discussion.
+
 ```{r}
 gg_surv_dmet_her2_pos_PIK3CA <- plot_km_dmet_binary_strata(
     dat = dft_dmet_surv_her2_pos,
     strata = "PIK3CA_gene",
+    plot_title = "Overall survival from metastasis (HER2+)"
+  )
+
+gg_surv_dmet_her2_pos_ERBB2_mut <- plot_km_dmet_binary_strata(
+    dat = dft_dmet_surv_her2_pos,
+    strata = "ERBB2_mut",
     plot_title = "Overall survival from metastasis (HER2+)"
   )
 ```
@@ -228,6 +236,11 @@ gg_surv_dmet_her2_pos_PIK3CA <- plot_km_dmet_binary_strata(
 
 ```{r, include = T}
 gg_surv_dmet_her2_pos_PIK3CA
+```
+
+
+```{r, include = T}
+gg_surv_dmet_her2_pos_ERBB2_mut
 ```
 
 
@@ -247,6 +260,29 @@ gg_rel_scatter_os_trip_neg
 ```{r, include = T}
 gg_mod_comp_trip_neg
 ```
+
+
+## Select KM plots (TNBC)
+
+In October 2023 we discussed the CCND1 effect and how many people this was based on.
+
+
+```{r}
+
+gg_surv_dmet_trip_neg_CCND1 <- plot_km_dmet_binary_strata(
+    dat = dft_dmet_surv_trip_neg,
+    strata = "CCND1_gene",
+    plot_title = "Overall survival from metastasis (TNBC)"
+  )
+```
+
+---
+
+```{r, include = T}
+gg_surv_dmet_trip_neg_CCND1
+```
+
+
 
 
 
