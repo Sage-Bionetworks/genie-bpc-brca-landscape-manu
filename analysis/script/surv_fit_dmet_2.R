@@ -51,11 +51,14 @@ dft_dmet_surv_her2_pos <- readr::read_rds(
 
 
 # These are the default adjustments - but I like being explicit.
-vec_dmet_surv_confounders <- c("age_dx_c", 
-                               "stage_dx_iv_num",
-                               "birth_year_c",
-                               "white",
-                               "hispanic")
+vec_dmet_surv_confounders <- c(
+  "age_dx_c", 
+  "stage_dx_iv_num",
+  "birth_year_c",
+  'asian', 'black', 'race_unk_oth',
+  "hispanic",
+  'institution_DFCI', 'institution_VICC'
+)
 
 boot_models_dmet_all <- surv_fit_dmet_wrap(
   dat = dft_dmet_surv_all,

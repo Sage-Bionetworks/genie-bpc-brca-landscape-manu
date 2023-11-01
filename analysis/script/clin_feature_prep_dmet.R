@@ -56,10 +56,19 @@ dft_cpt_dmet %<>%
 
 dft_clin_char <- dft_pt %>%
   mutate(
-    white = case_when(
-      is.na(naaccr_ethnicity_code) ~ NA_real_,
-      naaccr_race_code_primary %in% "White" ~ 1,
-      T ~ 0
+    # white = case_when(
+    #   is.na(naaccr_race_code_primary) ~ NA_real_,
+    #   naaccr_race_code_primary %in% "White" ~ 1,
+    #   T ~ 0
+    # ),
+    # Update: Nov 1 2023, recoded this to have white + non-hispanic be the reference.
+    # s = simplified.
+    race_s = case_when(
+      is.na(naaccr_race_code_primary) ~ "race_unk_oth",
+      naaccr_race_code_primary %in% "Black" ~ "black",
+      naaccr_race_code_primary %in% c("Chinese", "Other Asian") ~ "asian",
+      naaccr_race_code_primary %in% c("White") ~ "white",
+      T ~ "race_unk_oth" # includes 'Other', 'Unknown' and native north american peoples at this time.
     ),
     hispanic = case_when(
       is.na(naaccr_ethnicity_code) ~ NA_real_,
@@ -67,7 +76,8 @@ dft_clin_char <- dft_pt %>%
       T ~ 1
     )
   ) %>%
-  select(record_id, white, hispanic, birth_year)
+  # Also new: Adjustment for site.  We will hide this as an effect.
+  select(record_id, institution, race_s, hispanic, birth_year)
 
 dft_clin_char <- dft_ca_ind %>%
   select(
@@ -101,6 +111,23 @@ dft_clin_char %<>%
     age_dx_c = age_dx - 40, # approximately centered.
     birth_year_c = birth_year - 1970,
   )
+
+# dummy columns for the categorical predictors with >2 categories
+dft_clin_char %<>%
+  dummy_cols(., select_columns = "race_s") %>%
+  rename_at(
+    vars(contains("race_s_")),
+    .funs = (function(x) str_replace(x, "^race_s_", ""))
+  ) %>%
+  select(-race_s, -white) %>% # reference is white non-hispanic now.
+  relocate(hispanic, .after = last_col()) 
+dft_clin_char %<>%
+  dummy_cols(., select_columns = "institution") %>%
+  # don't need to rename because we won't show institution effects.
+  select(-institution, -institution_MSK) 
+
+# Note: BCA type is categorical but we'll deal with that later since it will
+#   be split into separate dataframes first.
 
 
 readr::write_rds(

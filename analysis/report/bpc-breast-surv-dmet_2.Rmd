@@ -90,6 +90,8 @@ dft_dmet_surv_her2_pos <- readr::read_rds(
 ## Model changes
 
 - Kept the log axis, changed labels to hazard ratio (previous labelled using $\log_e(\text{HR})$).
+- Changed the encoding for race.  There are now terms for {`black` (n=75), `asian`(n=62), `race_unk_oth` (n=89)} and the term for `hispanic` (n=78) remains in the model.  The reference group is now non-hispanic white.
+- An adjustment for insitution has been added.  **This is hidden from all plots to avoid controversy** but it is a stably selected feature in several models.
 
 
 
@@ -100,9 +102,27 @@ dft_coef_dmet_os_her2_pos %<>% mutate(hr = exp(log_hr))
 dft_coef_dmet_os_hr_pos_her2_neg %<>% mutate(hr = exp(log_hr))
 dft_coef_dmet_os_trip_neg %<>% mutate(hr = exp(log_hr))
 
-# Change the names on the coefficients per request:
 
+remove_institution_terms <- function(dat, col = 'term', drop_removed = T) {
+  dat %<>%
+    filter(!str_detect(.data[[col]], "^institution"))
+  
+  if (drop_removed) {
+    dat %<>% mutate({{col}} := fct_drop(.data[[col]]))
+  }
+  return(dat)
+}
 
+# Remove institution from the plots:
+dft_coef_dmet_os_all %<>% remove_institution_terms(.)
+dft_coef_dmet_os_her2_pos %<>% remove_institution_terms(.)
+dft_coef_dmet_os_hr_pos_her2_neg %<>% remove_institution_terms(.)
+dft_coef_dmet_os_trip_neg %<>% remove_institution_terms(.)
+
+dft_model_compare_dmet_os_all %<>% remove_institution_terms(.)
+dft_model_compare_dmet_os_trip_neg %<>% remove_institution_terms(.)
+dft_model_compare_dmet_os_her2_pos %<>% remove_institution_terms(.)
+dft_model_compare_dmet_os_hr_pos_her2_neg %<>% remove_institution_terms(.)
 
 ```
 
