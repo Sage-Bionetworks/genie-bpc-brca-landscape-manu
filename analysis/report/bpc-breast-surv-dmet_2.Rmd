@@ -5,7 +5,6 @@ output:
   beamer_presentation:
     toc: false
     slide_level: 2 
-date: "Updated 19 Sept 2023"
 editor_options: 
   chunk_output_type: console
 ---
@@ -92,6 +91,7 @@ dft_dmet_surv_her2_pos <- readr::read_rds(
 - Kept the log axis, changed labels to hazard ratio (previous labelled using $\log_e(\text{HR})$).
 - Changed the encoding for race.  There are now terms for {`black` (n=75), `asian`(n=62), `race_unk_oth` (n=89)} and the term for `hispanic` (n=78) remains in the model.  The reference group is now non-hispanic white.
 - An adjustment for insitution has been added.  **This is hidden from all plots to avoid controversy** but it is a stably selected feature in several models.
+- Added KM plots per comments last time.
 
 
 
@@ -238,6 +238,7 @@ gg_surv_dmet_her2_pos_ERBB2_mut <- plot_km_dmet_binary_strata(
 gg_surv_dmet_her2_pos_PIK3CA
 ```
 
+---
 
 ```{r, include = T}
 gg_surv_dmet_her2_pos_ERBB2_mut
