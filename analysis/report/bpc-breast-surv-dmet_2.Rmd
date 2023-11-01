@@ -1,6 +1,6 @@
 ---
 title: "Survival from metastasis"
-subtitle: "Version 2.1 using combined gene features"
+subtitle: "Version 2.2"
 output: 
   beamer_presentation:
     toc: false
@@ -89,36 +89,49 @@ dft_dmet_surv_her2_pos <- readr::read_rds(
 
 ## Model changes
 
-For today:
+- Kept the log axis, changed labels to hazard ratio (previous labelled using $\log_e(\text{HR})$).
 
-- Removed the splitting of genes based on gain and loss of function in response to group feedback.
-- Changed the colors in the Stability/Estimate plots to show whether a feature is a genetic or clinical feature.
-- Added KM plots to investigate features the group was expecting to see which were not stably selected.
+
+
+```{r}
+# Add the hazard ratio to all of these.  Easiest way to handle the plot scaling below.
+dft_coef_dmet_os_all %<>% mutate(hr = exp(log_hr))
+dft_coef_dmet_os_her2_pos %<>% mutate(hr = exp(log_hr))
+dft_coef_dmet_os_hr_pos_her2_neg %<>% mutate(hr = exp(log_hr))
+dft_coef_dmet_os_trip_neg %<>% mutate(hr = exp(log_hr))
+
+
+
+```
+
 
 # Results
 
 ```{r}
 
-vec_st <- "Stability is the frequency of identification in a boostrapped regularized LTRC Cox model"
-gg_rel_scatter_os_all <- plot_hr_rel_scatter_gene_clin(
+vec_st <- "Stability is the frequency of selection in a boostrapped regularized LTRC Cox model"
+gg_rel_scatter_os_all <- plot_hr_rel_scatter_gene_clin_rescale(
   dft_coef_dmet_os_all,
   plot_title = "OS prognostic variables from distant metastasis",
-  plot_subtitle = vec_st
+  plot_subtitle = vec_st,
+  x_trans = scales::log_trans(base = 2) # actually makes no difference.
 )
 
-gg_rel_scatter_os_trip_neg <- plot_hr_rel_scatter_gene_clin(
+gg_rel_scatter_os_all
+
+gg_rel_scatter_os_trip_neg <- plot_hr_rel_scatter_gene_clin_rescale(
   dft_coef_dmet_os_trip_neg,
   plot_title = "OS prognostic variables from distant metastasis (triple negative subgroup)",
   plot_subtitle = vec_st 
 )
 
-gg_rel_scatter_os_hr_pos_her2_neg <- plot_hr_rel_scatter_gene_clin(
+gg_rel_scatter_os_hr_pos_her2_neg <- plot_hr_rel_scatter_gene_clin_rescale(
   dft_coef_dmet_os_hr_pos_her2_neg,
   plot_title = "OS prognostic variables from distant metastasis (HR+/HER2- subgroup)",
   plot_subtitle = vec_st
 )
   
-gg_rel_scatter_os_her2_pos <- plot_hr_rel_scatter_gene_clin(
+gg_rel_scatter_os_her2_pos <- plot_hr_rel_scatter_gene_clin_rescale(
   dft_coef_dmet_os_her2_pos,
     plot_title = "OS prognostic variables from distant metastasis (HER2+ subgroup)",
   plot_subtitle = vec_st
