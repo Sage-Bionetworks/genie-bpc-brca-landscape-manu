@@ -416,6 +416,33 @@ print(dfp_diff_eff)
 
 
 
+```{r}
+k_dpi <- 300
+k_output_width <- 6
+k_output_height <- 4
+ggsave(
+  filename = here('output', 'fig', '01-surv-dmet-scatter-all.png'),
+  plot = gg_rel_scatter_os_all,
+  dpi = k_dpi, width = k_output_width, height = k_output_height
+)
+
+ggsave(
+  filename = here('output', 'fig', '01-surv-dmet-scatter-her2-pos.png'),
+  plot = gg_rel_scatter_os_her2_pos,
+  dpi = k_dpi, width = k_output_width, height = k_output_height
+)
+ggsave(
+  filename = here('output', 'fig', '01-surv-dmet-scatter-hr-pos-her2-neg.png'),
+  plot = gg_rel_scatter_os_hr_pos_her2_neg,
+  dpi = k_dpi, width = k_output_width, height = k_output_height
+)
+ggsave(
+  filename = here('output', 'fig', '01-surv-dmet-scatter-trip-neg.png'),
+  plot = gg_rel_scatter_os_trip_neg,
+  dpi = k_dpi, width = k_output_width, height = k_output_height
+)
+
+```
 
 
 
