@@ -442,6 +442,28 @@ ggsave(
   dpi = k_dpi, width = k_output_width, height = k_output_height
 )
 
+# PDFs (request)
+ggsave(
+  filename = here('output', 'fig', '01-surv-dmet-scatter-all.pdf'),
+  plot = gg_rel_scatter_os_all,
+  width = k_output_width, height = k_output_height
+)
+ggsave(
+  filename = here('output', 'fig', '01-surv-dmet-scatter-her2-pos.pdf'),
+  plot = gg_rel_scatter_os_her2_pos,
+  width = k_output_width, height = k_output_height
+)
+ggsave(
+  filename = here('output', 'fig', '01-surv-dmet-scatter-hr-pos-her2-neg.pdf'),
+  plot = gg_rel_scatter_os_hr_pos_her2_neg,
+  width = k_output_width, height = k_output_height
+)
+ggsave(
+  filename = here('output', 'fig', '01-surv-dmet-scatter-trip-neg.pdf'),
+  plot = gg_rel_scatter_os_trip_neg,
+  width = k_output_width, height = k_output_height
+)
+
 ```
 
 
