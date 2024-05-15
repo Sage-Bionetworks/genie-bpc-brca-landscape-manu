@@ -40,10 +40,10 @@ read_wrap_surv_sum <- function(file) {
 
 
 dft_coef_dmet_os_all <- read_wrap_surv_sum(
-     "coef_dmet_os_all"
+  "coef_dmet_os_all"
 )
 dft_coef_dmet_os_trip_neg <- read_wrap_surv_sum(
-     "coef_dmet_os_trip_neg"
+  "coef_dmet_os_trip_neg"
 )
 dft_coef_dmet_os_hr_pos_her2_neg <- read_wrap_surv_sum(
   "coef_dmet_os_hr_pos_her2_neg"

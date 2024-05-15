@@ -6,7 +6,11 @@ plot_hr_rel_scatter_gene_clin_rescale <- function(
     pal = c("#004488", "#bb5566"),
     txt_size = 2.5,
     x_var = "hr",
-    x_trans = scales::log_trans(base = 2)
+    x_lab = "Mean cumulative hazard ratio",
+    y_lab = "Selection<br>frequency",
+    x_trans = scales::log_trans(base = 2),
+    leg_pos = "right",
+    title_pos = "plot"
 ) {
   
   dat %<>%
@@ -44,9 +48,11 @@ plot_hr_rel_scatter_gene_clin_rescale <- function(
     ) + 
     labs(title = plot_title,
          subtitle = plot_subtitle, 
-         x = "Cumulative hazard ratio",
-         y = "Stability") + 
-    scale_y_continuous(limits = c(NA, 1)) + 
+         x = "Mean cumulative hazard ratio",
+         y = y_lab) + 
+    scale_y_continuous(
+      limits = c(NA, 1),
+      labels = scales::percent_format()) + 
     scale_x_continuous(
       n.breaks = 8,
       expand = expansion(add = 0, mult = 0.1)
@@ -55,8 +61,9 @@ plot_hr_rel_scatter_gene_clin_rescale <- function(
       x = x_trans
     ) + 
     theme(
-      axis.title.y = element_markdown(vjust = 0.5, angle = 0),
-      plot.title.position = "plot"
+      axis.title.y = element_markdown(vjust = 0.5, angle = 0, hjust = 0),
+      plot.title.position = title_pos,
+      legend.position = leg_pos
     )
   
   

@@ -56,6 +56,7 @@ rmarkdown::render(
   output_dir = here('output')
 )
 
+source(here('analysis', 'script', 'output_manu_figs.R'))
 
 
 
@@ -73,6 +74,8 @@ rmarkdown::render(
   output_file = '03-bpc-breast-surv-dmet-drugs.html',
   output_dir = here('output')
 )
+
+
 
 
 

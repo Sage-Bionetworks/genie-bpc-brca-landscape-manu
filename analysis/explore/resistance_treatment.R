@@ -10,8 +10,11 @@ purrr::walk(.x = here("R", dir(here("R"))), .f = source)
 load(here("data", "prog_cohorts.Rda")) # terrible programming, but this loads
 #  the drug map.
 
+# Writing to share with Evan:
 readr::write_csv(
-  here('analysis', 'explore', 'drug_map.csv')
+  dft_drug_map,
+  here('analysis', 'explore', 'drug_map.csv'),
+  na = ''
 )
 
 agent_interest <- dft_drug_map %>%
