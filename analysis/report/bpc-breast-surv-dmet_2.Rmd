@@ -330,6 +330,12 @@ gg_surv_dmet_hr_pos_her2_neg_MAP3K1 <- plot_km_dmet_binary_strata(
     strata = "MAP3K1_gene",
     plot_title = "Overall survival from metastasis (HR+/HER2-)"
   )
+
+gg_surv_dmet_hr_pos_her2_neg_TP53 <- plot_km_dmet_binary_strata(
+    dat = dft_dmet_surv_hr_pos_her2_neg,
+    strata = "TP53_gene",
+    plot_title = "Overall survival from metastasis (HR+/HER2-)"
+  )
 ```
 
 ---
@@ -356,12 +362,16 @@ gg_surv_dmet_hr_pos_her2_neg_MAP2K4
 gg_surv_dmet_hr_pos_her2_neg_MAP3K1
 ```
 
+---
+
+```{r, show_km_hr_pos_her2_neg_5, include = T}
+gg_surv_dmet_hr_pos_her2_neg_TP53
+```
 
 
 
 
-
-```{r, include = F, eval = F}
+```{r, include = T}
 # left these just to have a template:
 gg_surv_dmet_all_tp53_mut
 ```
