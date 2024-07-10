@@ -371,11 +371,6 @@ gg_surv_dmet_hr_pos_her2_neg_TP53
 
 
 
-```{r, include = T}
-# left these just to have a template:
-gg_surv_dmet_all_tp53_mut
-```
-
 
 
 # Appendix
