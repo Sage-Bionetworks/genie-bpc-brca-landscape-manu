@@ -25,15 +25,17 @@ out_dir <- here('output', 'fig', 'manu')
 # age_dx is a floored version of ca_cadx_int in this dataset.
 
 lev_age <- c(
-  "Age 18-39 at dx.",
-  "Age 40-56 at dx."
+  "18-39 at dx.",
+  "40-49 at dx.",
+  "50-59 at dx."
 )
 
 dft_surv_age_bca <- dft_ca_ind %>%
   mutate(
     age_custom = case_when(
       age_dx < 40 & age_dx >= 18 ~ lev_age[1],
-      age_dx <= 56 ~ lev_age[2]
+      age_dx < 50 & age_dx >= 40 ~ lev_age[2],
+      age_dx >= 50 ~ lev_age[3]
     ),
     age_custom = factor(age_custom, levels = lev_age)
   )
@@ -114,7 +116,8 @@ dft_surv_age_bca %<>%
 surv_age_plot_helper <- function(
     dat,
     bca_subgroup,
-    pal = c('#bb5566', '#004488', '#ddaa33')
+    pal = c("#8bc86a", "#319b47", "#027f85")
+    #pal = c('#bb5566', '#004488', '#ddaa33')
 ) {
   dat %<>%
     filter(bca_subtype_f_simple %in% bca_subgroup)
@@ -149,7 +152,7 @@ surv_age_plot_helper <- function(
       ),
       hjust = 0,
       risktable_height = 0.3,
-      size = 3.5
+      size = 3 
     ) +
     add_quantile(
       y_value = 0.5, linetype = 'solid', alpha = 0.3,
@@ -196,17 +199,17 @@ gg_trip_neg <- surv_age_plot_helper(dft_surv_age_bca,
                                     bca_subgroup = "Triple Negative")
 
 ggsave(
-  plot = gg_hr_pos, height = 4, width = 4,
+  plot = gg_hr_pos, height = 5, width = 5,
   filename = here(out_dir, 'fig_age_surv_hr_pos.pdf')
 )
 
 ggsave(
-  plot = gg_her2_pos, height = 4, width = 4,
+  plot = gg_her2_pos, height = 5, width = 5,
   filename = here(out_dir, 'fig_age_surv_her2_pos.pdf')
 )
 
 ggsave(
-  plot = gg_trip_neg, height = 4, width = 4,
+  plot = gg_trip_neg, height = 5, width = 5,
   filename = here(out_dir, 'fig_age_surv_trip_neg.pdf')
 )
 
