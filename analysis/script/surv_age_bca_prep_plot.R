@@ -105,111 +105,67 @@ dft_surv_age_bca %<>% add_specific_dmet_vars(.)
 dft_surv_age_bca %<>%
   filter(tt_cpt_dmet_yrs_pos <= tt_os_dmet_yrs)
 
+# We'll save this for later use because we'll need a whole report now:
+readr::write_rds(
+  dft_surv_age_bca,
+  file = here('data', 'survival', 'age', 'surv_age_bca_dat.rds')
+)
 
 
 
+gg_hr_pos <- plot_surv_age(
+  dft_surv_age_bca,
+  bca_subgroup = "HR+, HER2-"
+)
+gg_her2_pos <- plot_surv_age(
+  dft_surv_age_bca,  
+  bca_subgroup = "HER2+"
+)
+gg_trip_neg <- plot_surv_age(
+  dft_surv_age_bca, 
+  bca_subgroup = "Triple Negative"
+  )
+gg_all <- plot_surv_age(
+  dft_surv_age_bca,
+  bca_subgroup = NULL
+)
+
+# And then a rather inadvisable request to break the HER2+ group into two:
+gg_her2_pos_hr_pos <- plot_surv_age(
+  dft_surv_age_bca,
+  bca_subgroup = "HR+, HER2+",
+  bca_subgroup_var = "bca_subtype_f"
+)
+gg_her2_pos_hr_neg <- plot_surv_age(
+  dft_surv_age_bca,
+  bca_subgroup = "HR-, HER2+",
+  bca_subgroup_var = "bca_subtype_f"
+)
 
 
-
-# There's a bug in survminer's facet function.  This is a workaround 
-#   where we make each plot individually.
-surv_age_plot_helper <- function(
-    dat,
-    bca_subgroup,
-    pal = c("#8bc86a", "#319b47", "#027f85")
-    #pal = c('#bb5566', '#004488', '#ddaa33')
-) {
-  dat %<>%
-    filter(bca_subtype_f_simple %in% bca_subgroup)
-  
-  if (nrow(dat) < 1) {
-    cli_abort("Filtered down to zero rows with bca_subgroup = {bca_subgroup}")
-  }
-  n_for_title <- nrow(dat)
-  
-  surv_obj <- with(
-    dat,
-    Surv(
-      time = tt_cpt_dmet_yrs_pos,
-      time2 = tt_os_dmet_yrs,
-      event = os_dmet_status
-    )
+surv_age_save_help <- function(gg, file) {
+  readr::write_rds(
+    x = gg,
+    file = here('data', 'survival', 'age', paste0(file, '.rds'))
   )
   
-  fit <- survfit2(
-    surv_obj ~ age_custom,
-    data = dat
+  ggsave(
+    plot = gg, height = 5, width = 5,
+    filename = here(out_dir, paste0(file, '.pdf'))
   )
   
-  gg <- ggsurvfit(
-    x = fit
-  ) + 
-    add_risktable(
-      risktable_stats = c(
-        "n.risk",
-        "cum.censor",
-        "cum.event"
-      ),
-      hjust = 0,
-      risktable_height = 0.3,
-      size = 3 
-    ) +
-    add_quantile(
-      y_value = 0.5, linetype = 'solid', alpha = 0.3,
-      color = "#ddaa33", linewidth = 0.5
-    ) + 
-    scale_y_continuous(
-      expand = c(0,0),
-      label = scales::label_percent(),
-      name = "Survival"
-    ) +
-    scale_x_continuous(
-      name = "OS from dmet (yrs)",
-      expand = expansion(add = 0, mult = c(0, 0.15)), # needed to prevent clipping
-      breaks = 0:100
-    ) +
-    scale_color_manual(
-      values = pal
-    ) +
-    coord_cartesian(
-      xlim = c(0, 5.01),
-      ylim = c(0,1.01),
-      expand = T
-    ) +
-    labs(
-      title = paste0(bca_subgroup, " (n=", n_for_title, ")")
-    ) +
-    theme(
-      axis.title.y = element_blank(),
-      plot.title.position = "plot",
-      title = element_markdown(),
-      # prevents the axis tick label clipping:
-      plot.margin=unit(c(.2,.2,.2,.2),"cm")
-    )
-  
-  return(gg)
-  
+  return(NULL)
 }
 
-gg_hr_pos <- surv_age_plot_helper(dft_surv_age_bca,
-                                  bca_subgroup = "HR+, HER2-")
-gg_her2_pos <- surv_age_plot_helper(dft_surv_age_bca, 
-                                    bca_subgroup = "HER2+")
-gg_trip_neg <- surv_age_plot_helper(dft_surv_age_bca, 
-                                    bca_subgroup = "Triple Negative")
+surv_age_save_help(gg = gg_hr_pos, file = 'gg_age_surv_hr_pos')
+surv_age_save_help(gg_her2_pos, 'gg_age_surv_her2_pos')
+surv_age_save_help(gg_trip_neg, 'gg_age_surv_trip_neg')
+surv_age_save_help(gg_all, 'gg_age_surv_all')
 
-ggsave(
-  plot = gg_hr_pos, height = 5, width = 5,
-  filename = here(out_dir, 'fig_age_surv_hr_pos.pdf')
-)
+# saving these differently because they shouldn't be included long term:
+surv_age_save_help(gg = gg_her2_pos_hr_pos, 'aside_age_surv_her2_pos_hr_pos')
+surv_age_save_help(gg = gg_her2_pos_hr_neg, 'aside_age_surv_her2_pos_hr_neg')
 
-ggsave(
-  plot = gg_her2_pos, height = 5, width = 5,
-  filename = here(out_dir, 'fig_age_surv_her2_pos.pdf')
-)
 
-ggsave(
-  plot = gg_trip_neg, height = 5, width = 5,
-  filename = here(out_dir, 'fig_age_surv_trip_neg.pdf')
-)
+
 

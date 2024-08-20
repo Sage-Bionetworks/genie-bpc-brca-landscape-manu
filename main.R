@@ -60,6 +60,11 @@ source(here('analysis', 'script', 'output_manu_figs.R'))
 
 
 
+# A separate thread for Evan's analysis of age and genomics:
+source(here('analysis', 'script', 'surv_age_bca_prep_plot.R'))
+
+
+
 
 # Builds from "gene_feat_prep.R" above:
 source(here('analysis', 'script', 'create_drug_dat.R'))
