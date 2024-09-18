@@ -85,11 +85,24 @@ dft_clin_char <- dft_ca_ind %>%
   ) %>%
   full_join(., dft_clin_char, by = "record_id") 
 
+dft_first_cpt <- dft_cpt %>% 
+  group_by(record_id, ca_seq) %>%
+  slice(1) %>%
+  ungroup(.) %>%
+  select(
+    record_id, ca_seq, 
+    dx_fcpt_rep_days = dx_cpt_rep_days, 
+    dx_fcpt_rep_yrs = dx_cpt_rep_yrs
+  )
+
+dft_clin_char %<>%
+  left_join(., dft_first_cpt, by = c('record_id', 'ca_seq'))
+
 readr::write_rds(
   x = dft_cpt_dmet,
   here(
     'data', 'survival', 'v2', 'prepared_data', 
-    'clin_char_dmet.rds'
+    'cpt_dmet.rds'
   )
 )
 
@@ -97,7 +110,7 @@ readr::write_rds(
   x = dft_clin_char,
   here(
     'data', 'survival', 'v2', 'prepared_data', 
-    'cpt_dmet.rds'
+    'clin_char_dmet.rds'
   )
 )
 
