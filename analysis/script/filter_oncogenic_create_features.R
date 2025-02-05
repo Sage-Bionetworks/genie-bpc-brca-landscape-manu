@@ -133,7 +133,8 @@ dft_alt <- bind_rows(
   dft_fus_onco_alt
 )
 
-# We need a unique key.  Currently a sample can have several alterations in the same #  hugo code and alteration type.  
+# We need a unique key.  Currently a sample can have several alterations in the same
+#  hugo code and alteration type.  
 # Initially I wanted to use the descriptions of the
 #  alterations, such as the HGVSc code or the fusion description.  Because these
 #  are sometimes missing I'm going to assign a number instead.  Sometimes even with 
@@ -225,31 +226,6 @@ dft_gene_test %<>%
 dft_gene_test %<>%
   filter(tested)
 
-# Here we do a diversion to investigate something:  Are there samples here
-#  which were NOT tested for an alteration but show it anyway.
-# dft_gene_test_true <- dft_gene_test %>% filter(test_logical)
-# 
-# set.seed(130)
-# chk_untested_but_positive <- anti_join(
-#   dft_alt,
-#   dft_gene_test_true,
-#   by = c("sample_id", "hugo", "alt_type")
-# ) # %>%
-#   group_by(alt_type) %>%
-#   arrange(desc(!(oncogenic %in% "Unknown"))) %>% 
-#   slice(1:3) %>%
-#   ungroup(.)
-# 
-# chk_untested_but_positive %>% 
-#   slice(c(2,3,4,5,6,7)) %>%
-#   select(sample_id, hugo, alt_type, oncogenic, highest_level, fusion_desc)
-# 
-# vec_ubp_sample_id <- chk_untested_but_positive %>%
-#   filter(!(alt_type %in% "Fusion")) %>%
-#   pull(sample_id) 
-# dft_cpt %>% 
-#   filter(cpt_genie_sample_id %in% vec_ubp_sample_id) %>% 
-#   tabyl(cpt_seq_assay_id)
 
 
 
