@@ -1,18 +1,7 @@
 # Description:  Combine the gene features (by sample) into one RDS file.
 #   We'll save wide and long versions.
 
-library(magrittr)
-library(dplyr)
-library(janitor)
-library(yaml)
-library(here)
-library(purrr)
-library(fs)
-library(ggplot2)
-library(tidyr)
-library(stringr)
-
-
+library(purrr); library(here); library(fs);
 purrr::walk(.x = fs::dir_ls('R'), .f = source)
 
 dft_mut <- readr::read_rds(
@@ -74,3 +63,4 @@ readr::write_rds(
   x = dft_gene_feat_wide,
   file = here('data', 'gene_feat_wide.rds')
 )
+
