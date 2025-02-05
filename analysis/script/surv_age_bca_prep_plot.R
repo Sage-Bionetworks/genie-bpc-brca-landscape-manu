@@ -4,7 +4,6 @@
 
 library(here); library(purrr); library(fs)
 purrr::walk(.x = fs::dir_ls('R'), .f = source)
-library(survminer)
 
 dft_ca_ind <- readr::read_rds(
   here('data', 'clin_data_cohort', 'dft_ca_ind.rds')
