@@ -1,12 +1,5 @@
 # Description: Grabs the raw data from Synapse and stores it in the data-raw folder.
-#  We are using the genieBPC function in the hopes that it will support
-#  PAT access in the future.
 # Author: Alex Paynter
-
-# Before running this file you will need to login to synapse with
-#   genieBPC::set_synapse_credentials()
-# This login will expire every 24h, and should be replaced with a PAT
-#   access ASAP.
 
 library(purrr); library(here); library(fs);
 # Load all helper functions
@@ -14,18 +7,9 @@ purrr::walk(.x = fs::dir_ls('R'), .f = source)
 
 synLogin()
 
-# Rdata version:
-data_list <- genieBPC::pull_data_synapse(cohort = "BrCa",
-                                         version = "v1.2-consortium")
-# Save the Rdata version:
-readr::write_rds(x = data_list,
-                 file = here('data-raw', 'data_list.rds'))
 
 
-# CSV versions.
-# These may not match the processing done by MSK exactly (for example I think
-#   they filter down to index cancer regimens only).
-synLogin()
+# CSV versions - no longer using {genieBPC} for various reasons.  
 synid_clin_data <- 'syn39802381'
 synid_gen_data <- 'syn32299078'
 vec_gen_files <- c(
@@ -47,8 +31,6 @@ dft_gen_list <- synGetChildren(synid_gen_data) %>%
                  .f = as_tibble) %>%
   filter(name %in% vec_gen_files | str_detect(name, "^data_gene_panel_.*"))
 
-# dft_dat_list <- bind_rows(dft_clin_list, dft_gen_list)
-
 syn_store_help <- function(sid, loc = here('data-raw')) {
   synGet(
     entity = sid, 
@@ -68,14 +50,3 @@ purrr::walk(
   })
 )
 
-
-
-
-
-# Update: Also want to pull a sheet shared by Brooke M. @ MSK:
-synLogin()
-classified_meds_synid <- "syn51405609"
-synGet(entity = classified_meds_synid,
-       downloadLocation = here("data"))
-
-# And one file created by Protiva and Brooke - I saved a copy on Synapse.

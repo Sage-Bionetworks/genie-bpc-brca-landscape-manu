@@ -13,3 +13,5 @@ fs::file_delete(here('data', 'gene_feat_long.rds'))
 fs::file_delete(here('data', 'gene_feat_wide.rds'))
 # not sure about this one:
 fs::file_delete(here('data', 'drug_map.csv'))
+
+fs::dir_delete(here('output'))
