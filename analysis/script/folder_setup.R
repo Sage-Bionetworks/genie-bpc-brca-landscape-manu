@@ -1,10 +1,12 @@
 # Description: Creates folders for the analysis.
-# Note: This file is currently incomplete (did not think to create it at first,
-#   so some earlier scripts still have directory creation commands embedded 
-#   in specific scripts.
 
-library(purrr); library(here); library(fs);
-purrr::walk(.x = fs::dir_ls('R'), .f = source)
+library(fs); library(here)
+
+fs::dir_create(here("data-raw"), showWarnings = F)
+dir.create(here('data', 'survival', 'prepared_data'), showWarnings = F)
+dir.create(here('data', 'survival', 'fit_outputs'), showWarnings = F)
+dir.create(here('data-raw', 'genomic'), showWarnings = F)
+dir.create(here('data', 'genomic'), showWarnings = F)
 
 fs::dir_create(here('data', 'survival', 'v2', 'prepared_data'))
 fs::dir_create(here('data', 'survival', 'drug', 'fit_outputs'))

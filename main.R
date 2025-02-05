@@ -52,21 +52,6 @@ source(here('analysis', 'script', 'surv_age_bca_prep_plot.R'))
 
 
 
-# Builds from "gene_feat_prep.R" above:
-source(here('analysis', 'script', 'create_drug_dat.R'))
-source(here('analysis', 'script', 'count_drug_feasibility.R'))
-# This file builds on everything up to surv_prep_dmet_2.R above.
-source(here('analysis', 'script', 'surv_prep_dmet_drug.R'))
-source(here('analysis', 'script', 'surv_fit_drug.R'))
-source(here('analysis', 'script', 'surv_process_results_drug.R'))
-
-rmarkdown::render(
-  input = here('analysis', 'report', 'bpc-breast-surv-dmet-drugs.Rmd'),
-  output_file = '03-bpc-breast-surv-dmet-drugs.html',
-  output_dir = here('output')
-)
-
-
 
 
 

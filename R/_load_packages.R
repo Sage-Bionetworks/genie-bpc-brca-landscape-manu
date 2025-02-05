@@ -7,6 +7,8 @@ library(tictoc)
 library(rlang)
 library(vctrs)
 
+library(synapser)
+
 library(yaml)
 library(readr)
 

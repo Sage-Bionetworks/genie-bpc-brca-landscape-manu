@@ -12,13 +12,7 @@ library(purrr); library(here); library(fs);
 # Load all helper functions
 purrr::walk(.x = fs::dir_ls('R'), .f = source)
 
-dir.create(here("data-raw"), showWarnings = F)
-dir.create(here("data"), showWarnings = F)
-# Not immediately needed but setting up now:
-dir.create(here('data', 'survival', 'prepared_data'), showWarnings = F)
-dir.create(here('data', 'survival', 'fit_outputs'), showWarnings = F)
-dir.create(here('data-raw', 'genomic'), showWarnings = F)
-dir.create(here('data', 'genomic'), showWarnings = F)
+synLogin()
 
 # Rdata version:
 data_list <- genieBPC::pull_data_synapse(cohort = "BrCa",
