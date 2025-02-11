@@ -15,24 +15,30 @@ purrr::walk(.x = fs::dir_ls('R'), .f = source)
 
 source(here('analysis', 'script', 'folder_setup.R'))
 source(here('analysis', 'script', 'get_raw_data.R'))
+
+#################
+# Old Pipeline: #
+#################
 source(here('analysis', 'script', 'filter_data_for_cohort.R'))
-
-
-# No longer needed the following, using inputs from MSK bioinformatics team:
-# source(here('analysis', 'script', 'merge_gene_panels.R'))
 source(here('analysis', 'script', 'save_rds_msk_gene.R'))
 source(here('analysis', 'script', 'combine_gene_feat.R'))
-
-
-
-# Separate thread started on Sept 15 for annotating genes myself (faster),
-#   and doing the survival modeling with different features.
 source(here('analysis', 'script', 'prepare_data_for_oncokb_annotate.R'))
 # # run annotate_oncokb.sh from the command line.  See comments on enviro vars.
 source(here('analysis', 'script', 'create_gene_panel_dat.R'))
 source(here('analysis', 'script', 'filter_oncogenic_create_features.R')) # some room to trim here.
 source(here('analysis', 'script', 'gene_feat_prep.R'))
 source(here('analysis', 'script', 'clin_feature_prep_dmet.R')) # Added since v1.
+
+
+#################
+# New Pipeline: #
+#################
+
+
+
+##################
+# Survival Part: #
+##################
 source(here('analysis', 'script', 'surv_prep_dmet_2.R'))
 source(here('analysis', 'script', 'surv_fit_dmet_2.R'))
 source(here('analysis', 'script', 'surv_process_results_dmet_2.R'))
