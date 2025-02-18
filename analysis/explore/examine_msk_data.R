@@ -97,13 +97,59 @@ clin_samp %>%
   select(PATIENT_ID, SAMPLE_ID)
 
 
-# gam_gene %>%
-#   summarize(
-#     across(
-#       .cols = everything(),
-#       .fns = \(z) mean(is.na(z))
-#     )
-#   ) %>%
-#   glimpse
-  
+gam_gene %>%
+  summarize(
+    across(
+      .cols = everything(),
+      .fns = \(z) mean(is.na(z))
+    )
+  ) 
+
+
+
+gp_all <- readr::read_rds(
+  here('data', 'genomic', 'alt_test_full.rds')
+)
+alt_test <- readr::read_rds(
+  here('data', 'genomic', 'alt_test_full.rds')
+)
+# I'm not sure why it has duplicates, but we can fix that:
+alt_test %<>%
+  filter(alt_type %in% "Mutation") %>%
+  group_by(sample_id, hugo) %>%
+  slice(1) %>%
+  ungroup(.)
+
+gam_gene_long %>%
+  filter(sample_id %in% included_in_landscape$sample_id) %>%
+  group_by(feature) %>%
+  summarize(
+    n_samp_tested = sum(!is.na(value))
+  ) %>%
+  filter(n_samp_tested == length(unique(included_in_landscape$sample_id))) %>% View(.)
+
+test_compare <- gam_gene_long %>%
+  filter(sample_id %in% included_in_landscape$sample_id) %>%
+  mutate(
+    tested_msk = if_else(is.na(value), F, T)
+  ) %>%
+  full_join(
+    ., 
+    (alt_test %>%
+       filter(sample_id %in% included_in_landscape$sample_id) %>%
+       select(sample_id, feature = hugo, tested_alex = tested,
+              cpt_seq_assay_id)),
+    by = c("sample_id", "feature")
+  )
+
+test_compare %>%
+  group_by(feature) %>%
+  mutate(across(.cols = c(tested_msk, tested_alex),
+                .fns = \(x) if_else(is.na(x), F, x))) %>%
+  summarize(
+    pct_test_msk = mean(tested_msk),
+    pct_agree = mean(tested_msk == tested_alex)
+  ) %>%
+  arrange(pct_agree) %>%
+  View(.)
 
