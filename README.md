@@ -60,4 +60,4 @@ We wish to thank the following groups for their upstream contributions to the da
 
 # License
 
-The license for this material is [GNU GPLv3](https://choosealicense.com/licenses/gpl-3.0/).  If you want to convince me that allowing closed-source decendents of this project is a better policy, I'm interested in that topic.
+The license for this material is [GNU GPLv3](https://choosealicense.com/licenses/gpl-3.0/).  If you want to convince me that allowing closed-source decendents of this project is a better policy, I'm interested in hearing from you.  So far I haven't been swayed.
