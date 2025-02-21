@@ -64,18 +64,18 @@ excluded_unexplained <- clin_samp %>%
       Keep_for_Landscape %in% "Exclude"
   )
 
-
-excluded_unexplained %>%
-  rename_all(tolower) %>%
-  select(patient_id, sample_id, cancer_type, sex, bca_subtype, n_alt) %>%
-  View(.)
+# 
+# excluded_unexplained %>%
+#   rename_all(tolower) %>%
+#   select(patient_id, sample_id, cancer_type, sex, bca_subtype, n_alt) %>%
+#   View(.)
 
   # filter(Keep_for_Landscape %in% "Exclude" & 
   #          !(PATIENT_ID %in% included_in_landscape)) %>%
   # select(PATIENT_ID, SAMPLE_ID)
 
 included_in_landscape %<>% rename_all(tolower)
-excluded_with_no_duplicate %<>% rename_all(tolower)
+excluded_unexplained %<>% rename_all(tolower)
 
 
 readr::write_rds(
@@ -90,11 +90,11 @@ readr::write_rds(
 
 
 
-clin_samp %>%
-  mutate(pt_has_another_sample = PATIENT_ID %in% included_in_landscape)
-  filter(Keep_for_Landscape %in% "Exclude" & 
-           !(PATIENT_ID %in% pts_in_landscape)) %>%
-  select(PATIENT_ID, SAMPLE_ID)
+# clin_samp %>%
+#   mutate(pt_has_another_sample = PATIENT_ID %in% included_in_landscape) %>%
+#   filter(Keep_for_Landscape %in% "Exclude" & 
+#            !(PATIENT_ID %in% pts_in_landscape)) %>%
+#   select(PATIENT_ID, SAMPLE_ID)
 
 
 gam_gene %>%
@@ -120,13 +120,13 @@ alt_test %<>%
   slice(1) %>%
   ungroup(.)
 
-gam_gene_long %>%
-  filter(sample_id %in% included_in_landscape$sample_id) %>%
-  group_by(feature) %>%
-  summarize(
-    n_samp_tested = sum(!is.na(value))
-  ) %>%
-  filter(n_samp_tested == length(unique(included_in_landscape$sample_id))) %>% View(.)
+# gam_gene_long %>%
+#   filter(sample_id %in% included_in_landscape$sample_id) %>%
+#   group_by(feature) %>%
+#   summarize(
+#     n_samp_tested = sum(!is.na(value))
+#   ) %>%
+#   filter(n_samp_tested == length(unique(included_in_landscape$sample_id))) %>% View(.)
 
 test_compare <- gam_gene_long %>%
   filter(sample_id %in% included_in_landscape$sample_id) %>%
@@ -150,6 +150,65 @@ test_compare %>%
     pct_test_msk = mean(tested_msk),
     pct_agree = mean(tested_msk == tested_alex)
   ) %>%
-  arrange(pct_agree) %>%
+  arrange(pct_agree) # %>% 
+  # View(.)
+
+
+# Update:  I'm deferring on the inclusion of subjects because I can't afford to spend any more time on this.
+
+# Compare the MSK features to the ones I generated:
+gam_gene_long %>% glimpse
+
+gf_onco <- readr::read_rds(
+  here('data', 'genomic', 'gene_feat_oncogenic.rds')
+)
+
+gf_onco_long <- gf_onco %>%
+  pivot_longer(
+    cols = -sample_id,
+    names_to = 'feature',
+    values_to = 'sage'
+  )
+gf_onco_long %<>%
+  mutate(
+    feature = case_when(
+      feature %in% "CCND1_gene" ~ "CCND1.11q13.3", # no explanation given.
+      feature %in% "NKX2-1_gene" ~ "NKX2.1", # probably a column name thing.
+      str_detect(feature, '_gene$') ~ str_replace(feature, '_gene$', '' ),
+      str_detect(feature, 'ERBB2') ~ toupper(feature), # happens to work.
+      T ~ feature
+    )
+  )
+setdiff(gf_onco_long$feature, gam_gene_long$feature)
+
+# Just filter to genes in both lists.  There are some missing from my list (no positives? out of the 158, but this will definitely cover the major ones:
+onco_gene_compare <- gam_gene_long %>%
+  filter(feature %in% unique(gf_onco_long$feature)) %>%
+  rename(msk = value)
+
+onco_gene_compare <- left_join(
+  onco_gene_compare,
+  gf_onco_long,
+  by = c('sample_id', 'feature')
+) %>%
+  # for this purpose I'm just going to assume that not present is as good as
+  #   negative.
+  replace_na(list(sage = 0, msk = 0))
+
+onco_gene_compare %>%
+  filter(msk != sage) # k there are some, interesting.
+
+onco_gene_compare %>%
+  group_by(feature) %>%
+  summarize(prop_concordant = mean(msk == sage, na.rm = T)) %>%
   View(.)
+
+# Let's start with some of the exmaples which play heavily in our analysis:
+onco_gene_compare %>%
+  filter(sage != msk) %>%
+  sample_n(10)
+# I looked through these on cBioPortal.  The MSK ones are right and the sage ones are wrong.  I thought maybe the issue was copy number variants but there are some errors on mutations too - not sure what happened.
+
+
+
 
