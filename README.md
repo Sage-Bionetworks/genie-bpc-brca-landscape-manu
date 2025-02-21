@@ -21,7 +21,7 @@ This repository:
 - Does **not** use `renv` to manage package environments.
 - Does **not** use `docker` or other containerization to manage deployment.
 
-The level of granularity you want to provide for the above list is entirely up to you. You can also add a few more levels, such as those for statistical analysis or data preparation, or you can simply incorporate them into the above list as is.
+The code may work without appreciation of these tools, but no guarantees.
 
 ## Requirements
 
@@ -30,13 +30,6 @@ To run the code in this respository you will need:
 - A Synapse account which has taken the quiz granting data download rights for GENIE (**link?**)
 - The [synapser](https://r-docs.synapse.org/articles/synapser.html) R package, which will also require a python installation (follow instructions at that link).
 	- *Note:*  This is only used to acquire the data.  It is technically possible to do this manually if needed.
-- 
-
-# Data
-
-We use GENIE BPC Breast release version 1.2, which is only available to GENIE consortium members.  It should closely match the forthcoming Breast 2.0-public release, expected [here](https://www.synapse.org/Synapse:syn27056172/wiki/616631) sometime in the year 2025.  
-
-The structure, processing and flow of data is described in detail in the PDF data guide, which will come out with the release.
 
 # Code structure
 
@@ -47,6 +40,13 @@ The top-level workflow of the project is in `main.R`.  This calls the other anal
 - `/data` - Processed data, saved at various stages in the analysis.
 - `/output` - Figures, rendered reports, tables, etc.
 - `/R` - Function definitions.  These are sometimes written with {roxygen}-style documentation.
+
+
+# Data
+
+We use GENIE BPC Breast release version 1.2, which is only available to GENIE consortium members.  It should closely match the forthcoming Breast 2.0-public release, expected [here](https://www.synapse.org/Synapse:syn27056172/wiki/616631) sometime in the year 2025.  
+
+The structure, processing and flow of data is described in detail in the PDF data guide, which will come out with the release.
 
 
 # Acknowledgments/References
