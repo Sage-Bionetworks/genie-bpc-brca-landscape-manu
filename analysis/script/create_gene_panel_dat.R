@@ -1,9 +1,6 @@
-# Description:  Substantially simplified version of the script from the prostate
-#   cohort.
+# Description: Process the gene panel files into something usable.
 
-library(purrr)
-library(here)
-library(fs)
+library(purrr); library(here); library(fs)
 purrr::walk(.x = fs::dir_ls(here('R')), .f = source)
 
 vec_gene_panels <- fs::dir_ls(here('data-raw', 'genomic')) %>%
@@ -16,8 +13,6 @@ gp_all <- purrr::map_dfr(
 
 # for consistency with clinical data (and I like the name better)
 gp_all %<>% rename(cpt_seq_assay_id = stable_id)
-
-
 
 saveRDS(
   object = gp_all,

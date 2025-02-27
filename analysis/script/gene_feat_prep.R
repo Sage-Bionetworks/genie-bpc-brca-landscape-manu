@@ -41,7 +41,7 @@ dft_gene_covar <- split_gene_features(
   vec_function = character(0)
 )
 
-dft_gene_covar <- readr::write_rds(
+readr::write_rds(
   x = dft_gene_covar,
   file = here('data', 'genomic', 'gene_feat_oncogenic.rds')
 )
